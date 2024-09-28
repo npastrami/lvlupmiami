@@ -93,8 +93,68 @@ class NFTDatabase {
     });
   }
 
+  // Insert into marketplace_listings table
+  insertListing(nftId: string, sellerAddress: string, price: number): Promise<number> {
+    const insertListingSQL = `
+      INSERT INTO marketplace_listings (nft_id, seller_address, price)
+      VALUES (?, ?, ?)
+    `;
+    return this.insert(insertListingSQL, [nftId, sellerAddress, price]);
+  }
+
+  // Insert into transactions_history table
+  insertTransaction(nftId: string, buyerAddress: string, sellerAddress: string, price: number): Promise<number> {
+    const insertTransactionSQL = `
+      INSERT INTO transactions_history (nft_id, buyer_address, seller_address, price)
+      VALUES (?, ?, ?, ?)
+    `;
+    return this.insert(insertTransactionSQL, [nftId, buyerAddress, sellerAddress, price]);
+  }
+
+  // Insert into fresh_mints table
+  insertMint(nftId: string, ownerAddress: string): Promise<number> {
+    const insertMintSQL = `
+      INSERT INTO fresh_mints (nft_id, owner_address)
+      VALUES (?, ?)
+    `;
+    return this.insert(insertMintSQL, [nftId, ownerAddress]);
+  }
+
+  // Insert into queued_mints table
+  insertQueuedMint(nftId: string, ownerAddress: string): Promise<number> {
+    const insertQueuedMintSQL = `
+      INSERT INTO queued_mints (nft_id, owner_address)
+      VALUES (?, ?)
+    `;
+    return this.insert(insertQueuedMintSQL, [nftId, ownerAddress]);
+  }
+
+  // Fetch all marketplace listings
+  getAllListings(): Promise<any[]> {
+    const fetchListingsSQL = `SELECT * FROM marketplace_listings`;
+    return this.fetch(fetchListingsSQL);
+  }
+
+  // Fetch all transactions
+  getAllTransactions(): Promise<any[]> {
+    const fetchTransactionsSQL = `SELECT * FROM transactions_history`;
+    return this.fetch(fetchTransactionsSQL);
+  }
+
+  // Fetch all fresh mints
+  getAllMints(): Promise<any[]> {
+    const fetchMintsSQL = `SELECT * FROM fresh_mints`;
+    return this.fetch(fetchMintsSQL);
+  }
+
+  // Fetch all queued mints
+  getAllQueuedMints(): Promise<any[]> {
+    const fetchQueuedMintsSQL = `SELECT * FROM queued_mints`;
+    return this.fetch(fetchQueuedMintsSQL);
+  }
+
   // Insert a record
-  insert(sql: string, params: any[] = []): Promise<number> {
+  private insert(sql: string, params: any[] = []): Promise<number> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(new Error("Database not open."));
@@ -112,7 +172,7 @@ class NFTDatabase {
   }
 
   // Fetch records
-  fetch(sql: string, params: any[] = []): Promise<any[]> {
+  private fetch(sql: string, params: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(new Error("Database not open."));
@@ -155,19 +215,11 @@ class NFTDatabase {
   try {
     await db.open();
 
-    // Example: Insert a record into marketplace_listings table
-    const insertListingSQL = `
-      INSERT INTO marketplace_listings (nft_id, seller_address, price)
-      VALUES (?, ?, ?)
-    `;
-    await db.insert(insertListingSQL, [
-      "nft12345",
-      "0x1234567890abcdef1234567890abcdef12345678",
-      10.5
-    ]);
+    // Insert a record into marketplace_listings
+    await db.insertListing("nft12345", "0x1234567890abcdef1234567890abcdef12345678", 10.5);
 
-    // Fetch records from marketplace_listings table
-    const listings = await db.fetch(`SELECT * FROM marketplace_listings`);
+    // Fetch all records from marketplace_listings table
+    const listings = await db.getAllListings();
     console.log(listings);
 
   } catch (err) {
