@@ -1,4 +1,4 @@
-import sqlite3 from 'sqlite3';
+import sqlite3 from "sqlite3";
 
 class NFTDatabase {
   private databaseFile: string;
@@ -12,7 +12,7 @@ class NFTDatabase {
   // Open the database connection and create necessary tables
   async open(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.databaseFile, async (err) => {
+      this.db = new sqlite3.Database(this.databaseFile, async err => {
         if (err) {
           console.error("Failed to open database:", err.message);
           reject(err);
@@ -81,7 +81,7 @@ class NFTDatabase {
       if (!this.db) {
         return reject(new Error("Database not open."));
       }
-      this.db.run(sql, (err) => {
+      this.db.run(sql, err => {
         if (err) {
           console.error("Error creating table:", err.message);
           reject(err);
@@ -195,7 +195,7 @@ class NFTDatabase {
       if (!this.db) {
         return reject(new Error("Database not open."));
       }
-      this.db.close((err) => {
+      this.db.close(err => {
         if (err) {
           console.error("Failed to close database:", err.message);
           reject(err);
@@ -210,7 +210,7 @@ class NFTDatabase {
 
 // Example Usage
 (async () => {
-  const db = new NFTDatabase('nft_database.db');
+  const db = new NFTDatabase("nft_database.db");
 
   try {
     await db.open();
@@ -221,7 +221,6 @@ class NFTDatabase {
     // Fetch all records from marketplace_listings table
     const listings = await db.getAllListings();
     console.log(listings);
-
   } catch (err) {
     console.error(err);
   } finally {

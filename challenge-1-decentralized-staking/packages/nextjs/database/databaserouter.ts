@@ -1,13 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import NFTDatabase from './nftdatabase';
+import NFTDatabase from "./nftdatabase";
+import { NextApiRequest, NextApiResponse } from "next";
 
-const db = new NFTDatabase('nft_database.db');
+const db = new NFTDatabase("nft_database.db");
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await db.open();
 
   try {
-    if (req.method === 'GET') {
+    if (req.method === "GET") {
       // Fetch marketplace listings
       const listings = await db.getAllListings();
       res.status(200).json(listings);
