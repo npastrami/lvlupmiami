@@ -37,11 +37,15 @@
   },
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
+    "@types/sqlite3": "^3.1.11",
     "hardhat": "^2.22.12",
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3"
   },
   "engines": {
     "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
   }
 }
