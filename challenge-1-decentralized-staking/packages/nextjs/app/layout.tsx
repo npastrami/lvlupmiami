@@ -1,16 +1,18 @@
+// app/layout.tsx
+
 import "@rainbow-me/rainbowkit/styles.css";
 import { Metadata } from "next";
 import { ScaffoldEthAppWithProviders } from "~~/components/ScaffoldEthAppWithProviders";
-import { ThemeProvider } from "~~/components/ThemeProvider";
 import "~~/styles/globals.css";
+import { Providers } from "./providers"; // Import the Providers component
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : `http://localhost:${process.env.PORT || 3000}`;
 const imageUrl = `${baseUrl}/thumbnail.jpg`;
 
-const title = "LevelUp | SpeedRunEthereum";
-const titleTemplate = "%s | SpeedRunEthereum";
+const title = "LevelUp";
+const titleTemplate = "%s | LevelUp";
 const description = "Built with 🏗 Scaffold-ETH 2";
 
 export const metadata: Metadata = {
@@ -46,16 +48,14 @@ export const metadata: Metadata = {
   },
 };
 
-const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning>
       <body>
-        <ThemeProvider enableSystem>
+        <Providers>
           <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
-};
-
-export default ScaffoldEthApp;
+}

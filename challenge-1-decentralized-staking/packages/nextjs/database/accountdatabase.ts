@@ -1,4 +1,4 @@
-import sqlite3 from 'sqlite3';
+import sqlite3 from "sqlite3";
 
 class AccountDatabase {
   private databaseFile: string;
@@ -12,7 +12,7 @@ class AccountDatabase {
   // Open the database connection and create necessary tables
   async open(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.databaseFile, async (err) => {
+      this.db = new sqlite3.Database(this.databaseFile, async err => {
         if (err) {
           console.error("Failed to open database:", err.message);
           reject(err);
@@ -51,13 +51,12 @@ class AccountDatabase {
     });
   }
 
-  // Create a single table
   private createTable(sql: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(new Error("Database not open."));
       }
-      this.db.run(sql, (err) => {
+      this.db.run(sql, err => {
         if (err) {
           console.error("Error creating table:", err.message);
           reject(err);
@@ -69,27 +68,19 @@ class AccountDatabase {
     });
   }
 
-  // Insert a new account into the accountsettings table
   insertAccount(
     username: string,
     password: string,
     email: string,
     ethWalletId: string,
     nftAddresses: string,
-    marketplaceListingIds: string
+    marketplaceListingIds: string,
   ): Promise<number> {
     const insertAccountSQL = `
       INSERT INTO accountsettings (username, password, email, eth_wallet_id, nft_addresses, marketplace_listing_ids)
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    return this.insert(insertAccountSQL, [
-      username,
-      password,
-      email,
-      ethWalletId,
-      nftAddresses,
-      marketplaceListingIds
-    ]);
+    return this.insert(insertAccountSQL, [username, password, email, ethWalletId, nftAddresses, marketplaceListingIds]);
   }
 
   // Fetch all accounts from the accountsettings table
@@ -140,7 +131,7 @@ class AccountDatabase {
       if (!this.db) {
         return reject(new Error("Database not open."));
       }
-      this.db.close((err) => {
+      this.db.close(err => {
         if (err) {
           console.error("Failed to close database:", err.message);
           reject(err);
@@ -155,7 +146,7 @@ class AccountDatabase {
 
 // Example Usage
 (async () => {
-  const db = new AccountDatabase('account_database.db');
+  const db = new AccountDatabase("account_database.db");
 
   try {
     await db.open();
@@ -167,7 +158,7 @@ class AccountDatabase {
       "user1@example.com",
       "0x1234abcd5678efgh9012ijkl3456mnop7890qrst",
       "0xNFT1,0xNFT2,0xNFT3",
-      "listing1,listing2"
+      "listing1,listing2",
     );
 
     // Fetch all accounts from accountsettings table using the new method
