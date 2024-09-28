@@ -37,6 +37,8 @@
   },
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
+    "@types/react-slick": "^0",
+    "@types/slick-carousel": "^1",
     "@types/sqlite3": "^3.1.11",
     "hardhat": "^2.22.12",
     "husky": "^8.0.1",
@@ -46,6 +48,8 @@
     "node": ">=18.17.0"
   },
   "dependencies": {
+    "react-slick": "^0.30.2",
+    "slick-carousel": "^1.8.1",
     "sqlite3": "^5.1.7"
   }
 }
