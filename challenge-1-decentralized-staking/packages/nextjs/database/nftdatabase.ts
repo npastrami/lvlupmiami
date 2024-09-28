@@ -228,3 +228,5 @@ class NFTDatabase {
     await db.close();
   }
 })();
+
+export default NFTDatabase;
