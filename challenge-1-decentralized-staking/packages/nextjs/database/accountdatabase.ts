@@ -69,8 +69,37 @@ class AccountDatabase {
     });
   }
 
+  // Insert a new account into the accountsettings table
+  insertAccount(
+    username: string,
+    password: string,
+    email: string,
+    ethWalletId: string,
+    nftAddresses: string,
+    marketplaceListingIds: string
+  ): Promise<number> {
+    const insertAccountSQL = `
+      INSERT INTO accountsettings (username, password, email, eth_wallet_id, nft_addresses, marketplace_listing_ids)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    return this.insert(insertAccountSQL, [
+      username,
+      password,
+      email,
+      ethWalletId,
+      nftAddresses,
+      marketplaceListingIds
+    ]);
+  }
+
+  // Fetch all accounts from the accountsettings table
+  getAllAccounts(): Promise<any[]> {
+    const fetchAccountsSQL = `SELECT * FROM accountsettings`;
+    return this.fetch(fetchAccountsSQL);
+  }
+
   // Insert a record
-  insert(sql: string, params: any[] = []): Promise<number> {
+  private insert(sql: string, params: any[] = []): Promise<number> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(new Error("Database not open."));
@@ -88,7 +117,7 @@ class AccountDatabase {
   }
 
   // Fetch records
-  fetch(sql: string, params: any[] = []): Promise<any[]> {
+  private fetch(sql: string, params: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(new Error("Database not open."));
@@ -130,23 +159,19 @@ class AccountDatabase {
 
   try {
     await db.open();
-    
-    // Insert a record into accountsettings table
-    const insertAccountSQL = `
-      INSERT INTO accountsettings (username, password, email, eth_wallet_id, nft_addresses, marketplace_listing_ids)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-    await db.insert(insertAccountSQL, [
+
+    // Insert a new account into accountsettings table using the new method
+    await db.insertAccount(
       "user1",
       "password123",
       "user1@example.com",
       "0x1234abcd5678efgh9012ijkl3456mnop7890qrst",
       "0xNFT1,0xNFT2,0xNFT3",
       "listing1,listing2"
-    ]);
+    );
 
-    // Fetch records from accountsettings table
-    const accounts = await db.fetch(`SELECT * FROM accountsettings`);
+    // Fetch all accounts from accountsettings table using the new method
+    const accounts = await db.getAllAccounts();
     console.log(accounts);
   } catch (err) {
     console.error(err);
