@@ -1,4 +1,4 @@
-import { DebugContracts } from "./_components/DebugContracts";
+import { MarketplaceContracts } from "./_components/MarketPlace";
 import type { NextPage } from "next";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
@@ -7,10 +7,10 @@ export const metadata = getMetadata({
   description: "Buy & Sell your NFTs",
 });
 
-const Debug: NextPage = () => {
+const Marketplace: NextPage = () => {
   return (
     <>
-      <DebugContracts />
+      <MarketplaceContracts />
       <div className="text-center mt-8 bg-secondary p-10">
         <h1 className="text-4xl my-0">Debug Contracts</h1>
         <p className="text-neutral">
@@ -25,4 +25,4 @@ const Debug: NextPage = () => {
   );
 };
 
-export default Debug;
+export default Marketplace;
