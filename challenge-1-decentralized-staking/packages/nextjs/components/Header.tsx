@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
 import { Bars3Icon, BoltIcon, BuildingLibraryIcon, CircleStackIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
@@ -32,16 +33,6 @@ export const menuLinks: HeaderMenuLink[] = [
   {
     label: "Marketplace",
     href: "/marketplace",
-    icon: <BuildingLibraryIcon className="h-4 w-4" />,
-  },
-  {
-    label: "Login",
-    href: "/login",
-    icon: <BuildingLibraryIcon className="h-4 w-4" />,
-  },
-  {
-    label: "Sign-Up",
-    href: "/signup",
     icon: <BuildingLibraryIcon className="h-4 w-4" />,
   },
 ];
@@ -76,6 +67,7 @@ export const HeaderMenuLinks = () => {
  * Site header
  */
 export const Header = () => {
+  const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const burgerMenuRef = useRef<HTMLDivElement>(null);
   useOutsideClick(
@@ -122,8 +114,28 @@ export const Header = () => {
         </ul>
       </div>
       <div className="navbar-end flex-grow mr-4">
-        <RainbowKitCustomConnectButton />
-        <FaucetButton />
+        {session ? (
+          <>
+            <RainbowKitCustomConnectButton />
+            <FaucetButton />
+          </>
+        ) : (
+          <>
+            <button
+              className="me-10 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 hover:text-gray-100 transition duration-300"
+              onClick={() => window.location.href = '/auth/signin'}
+            >
+              Log In
+            </button>
+
+            <button
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700 hover:text-gray-100 transition duration-300"
+              onClick={() => window.location.href = '/auth/signup'}
+            >
+              Sign Up
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
