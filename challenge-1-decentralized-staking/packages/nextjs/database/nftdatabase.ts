@@ -209,23 +209,23 @@ class NFTDatabase {
 }
 
 // Example Usage
-(async () => {
-  const db = new NFTDatabase("nft_database.db");
+// (async () => {
+//   const db = new NFTDatabase("nft_database.db");
 
-  try {
-    await db.open();
+//   try {
+//     await db.open();
 
-    // Insert a record into marketplace_listings
-    await db.insertListing("nft12345", "0x1234567890abcdef1234567890abcdef12345678", 10.5);
+//     // Insert a record into marketplace_listings
+//     await db.insertListing("nft12345", "0x1234567890abcdef1234567890abcdef12345678", 10.5);
 
-    // Fetch all records from marketplace_listings table
-    const listings = await db.getAllListings();
-    console.log(listings);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    await db.close();
-  }
-})();
+//     // Fetch all records from marketplace_listings table
+//     const listings = await db.getAllListings();
+//     console.log(listings);
+//   } catch (err) {
+//     console.error(err);
+//   } finally {
+//     await db.close();
+//   }
+// })();
 
 export default NFTDatabase;
