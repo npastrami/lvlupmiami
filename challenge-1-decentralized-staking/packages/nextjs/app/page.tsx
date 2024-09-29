@@ -119,14 +119,17 @@ const Home: NextPage = () => {
 
         <div className="max-w-3xl mx-auto text-center mt-8">
           <p className="text-center text-lg">
-          Our project harnesses the power of decentralized technology to redefine the way users interact with blockchain ecosystems.
-           Built with SpeedRunEthereum and Scaffoldeth, our solution addresses key challenges in decentralized finance and digital\
+          🌟 Our project harnesses the power of decentralized technology to redefine the way users interact with blockchain ecosystems.
+           Built with SpeedRunEthereum and Scaffoldeth, our solution addresses key challenges in decentralized finance and digital
             ownership through a seamless and user-friendly application. Through innovation, we aim to set a new standard for 
             decentralized applications and contribute meaningfully to the future of Web3.
+
+           
           </p>
           <p className="text-center text-lg mt-4">
-            🌟 The final deliverable is deploying a Dapp that lets users send ether to a contract and stake if the
-            conditions are met, then deploy your app to a public webserver. Submit the url on{" "}
+            🌟 We want to express our deep gratitude to FIU and its exceptional program in hospitality, which has empowered us 
+            to work hard and strive for excellence in every endeavor. Our participation in this project is driven 
+             by the same tenacity and pride that defines every FIU student, making us not only competitors but pioneers of change.{" "}
             <a href="https://speedrunethereum.com/" target="_blank" rel="noreferrer" className="underline">
               SpeedRunEthereum.com
             </a>{" "}

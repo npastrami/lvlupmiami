@@ -100,8 +100,8 @@ export const Header = () => {
             </ul>
           )}
         </div>
-        <Link href="/" passHref className="hidden xl:flex items-center gap-1 ml-4 mr-6 shrink-0">
-          <div className="flex relative w-10 h-10">
+        <Link href="/" passHref className="hidden xl:flex items-center gap-4 ml-4 mr-6 shrink-1">
+          <div className="flex relative w-11 h-11 ">
             <Image alt="SE2 logo" className="cursor-pointer" fill src="/LevelUpIcon.png" />
           </div>
           <div className="flex flex-col">
