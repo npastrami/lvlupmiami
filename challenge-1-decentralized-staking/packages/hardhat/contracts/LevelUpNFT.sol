@@ -14,7 +14,7 @@ contract LevelUpNFT is ERC721URIStorage, Ownable {
     function mint(address to, uint256 tokenId, string memory tokenURI) external onlyOwner {
         _mint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
-        tokenLevels[tokenId] = 1; // Initial level set to 1
+        tokenLevels[tokenId] = 1; // Initial level set to 0
     }
 
     // Get the level of a token

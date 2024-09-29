@@ -49,6 +49,7 @@ export const useScaffoldWriteContract = <TContractName extends ContractName>(
       return;
     }
     if (chain?.id !== targetNetwork.id) {
+      console.log(chain.id)
       notification.error("You are on the wrong network");
       return;
     }
@@ -98,6 +99,7 @@ export const useScaffoldWriteContract = <TContractName extends ContractName>(
       return;
     }
     if (chain?.id !== targetNetwork.id) {
+      console.log(chain.id)
       notification.error("You are on the wrong network");
       return;
     }

@@ -38,6 +38,9 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    // localhost: {
+    //   url: "http://127.0.0.1:8485",
+    // },
     // View the networks that are pre-configured.
     // If the network you are looking for is not here you can add new network settings
     hardhat: {
