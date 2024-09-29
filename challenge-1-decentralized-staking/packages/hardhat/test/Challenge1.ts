@@ -9,19 +9,19 @@ describe("🚩 Challenge 1: 🔏 Decentralized Staking App", function () {
   let exampleExternalContract: ExampleExternalContract;
   let stakerContract: Staker;
 
-  describe("Staker", function () {
+  describe("NFTStaker", function () {
     const contractAddress = process.env.CONTRACT_ADDRESS;
 
     let contractArtifact: string;
     if (contractAddress) {
       // For the autograder.
-      contractArtifact = `contracts/download-${contractAddress}.sol:Staker`;
+      contractArtifact = `contracts/download-${contractAddress}.sol:NFTStaker`;
     } else {
-      contractArtifact = "contracts/Staker.sol:Staker";
+      contractArtifact = "contracts/NFTStaker.sol:NFTStaker";
     }
 
-    it("Should deploy ExampleExternalContract", async function () {
-      const ExampleExternalContract = await ethers.getContractFactory("ExampleExternalContract");
+    it("Should deploy LevelUpNFT", async function () {
+      const ExampleExternalContract = await ethers.getContractFactory("LevelUpNFT");
       exampleExternalContract = await ExampleExternalContract.deploy();
     });
     it("Should deploy Staker", async function () {
@@ -90,7 +90,7 @@ describe("🚩 Challenge 1: 🔏 Decentralized Staking App", function () {
           exampleExternalContract = await ExampleExternalContract.deploy();
           const exampleExternalContractAddress = await exampleExternalContract.getAddress();
 
-          const Staker = await ethers.getContractFactory("Staker");
+          const Staker = await ethers.getContractFactory("NFTStaker");
 
           stakerContract = await Staker.deploy(exampleExternalContractAddress);
 
