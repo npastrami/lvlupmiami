@@ -119,11 +119,10 @@ const Home: NextPage = () => {
 
         <div className="max-w-3xl mx-auto text-center mt-8">
           <p className="text-center text-lg">
-            🦸 A superpower of Ethereum is allowing you, the builder, to create a simple set of rules that an
-            adversarial group of players can use to work together. In this challenge, you create a decentralized
-            application where users can coordinate a group funding effort. If the users cooperate, the money is
-            collected in a second smart contract. If they defect, the worst that can happen is everyone gets their money
-            back. The users only have to trust the code.
+          Our project harnesses the power of decentralized technology to redefine the way users interact with blockchain ecosystems.
+           Built with SpeedRunEthereum and Scaffoldeth, our solution addresses key challenges in decentralized finance and digital\
+            ownership through a seamless and user-friendly application. Through innovation, we aim to set a new standard for 
+            decentralized applications and contribute meaningfully to the future of Web3.
           </p>
           <p className="text-center text-lg mt-4">
             🌟 The final deliverable is deploying a Dapp that lets users send ether to a contract and stake if the
