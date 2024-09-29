@@ -8,25 +8,30 @@ import type { NextPage } from "next";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick-theme.css";
 import "slick-carousel/slick/slick.css";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useAccount } from "wagmi";
+
 
 // app/page.tsx
 
 const Home: NextPage = () => {
   const [imagesHotOffPress] = useState<string[]>([
-    "/placeholder1.jpg",
-    "/placeholder2.png",
-    "/placeholder3.jpg",
-    "/placeholder4.jpg",
-    "/placeholder5.jpg",
+    "/nft1.jpg",
+    "/nft2.jpg",
+    "/nft3.png",
+    "/nft4.jpg",
+    "/nft5.jpg",
   ]);
 
   const [imagesUpcomingReleases] = useState<string[]>([
-    "/placeholder6.jpg",
-    "/placeholder7.png",
-    "/placeholder8.jpg",
-    "/placeholder9.jpg",
-    "/placeholder10.jpg",
+    "/nft6.jpg",
+    "/nft7.jpg",
+    "/nft8.jpg",
+    "/nft9.jpg",
+    "/nft10.jpg",
   ]);
+
+  
 
   const settings = {
     dots: true,
@@ -39,6 +44,27 @@ const Home: NextPage = () => {
     arrows: true,
     centerMode: true,
     centerPadding: "150px",
+  };
+
+  const { address } = useAccount();
+  // Specify the contractName with the correct literal type
+  const { writeContractAsync, isMining } = useScaffoldWriteContract("FreshMint");
+
+  const handleMint = async (ipfsLink: string) => {
+    if (!ipfsLink) {
+      alert("Please enter an IPFS link.");
+      return;
+    }
+    try {
+      await writeContractAsync({
+        functionName: "mintNFT",
+        args: [address, ipfsLink],
+      });
+      alert("NFT minted successfully!");
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      alert("Error minting NFT. See console for details.");
+    }
   };
 
   return (
@@ -74,6 +100,15 @@ const Home: NextPage = () => {
                         height: "100%",
                       }}
                     />
+                    <button
+                      className={`btn btn-primary absolute bottom-4 left-1/2 transform -translate-x-1/2 ${
+                        isMining ? "loading" : ""
+                      }`}
+                      onClick={() => handleMint(imageSrc)}
+                      disabled={isMining}
+                    >
+                      {isMining ? "Minting..." : "Mint Now"}
+                    </button>
                   </div>
                 </div>
               ))}
