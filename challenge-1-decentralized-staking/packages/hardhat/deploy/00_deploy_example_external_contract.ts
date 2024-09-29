@@ -21,7 +21,7 @@ const deployExampleExternalContract: DeployFunction = async function (hre: Hardh
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("ExampleExternalContract", {
+  await deploy("LevelUpNFT", {
     from: deployer,
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
@@ -32,4 +32,4 @@ const deployExampleExternalContract: DeployFunction = async function (hre: Hardh
 
 export default deployExampleExternalContract;
 
-deployExampleExternalContract.tags = ["ExampleExternalContract"];
+deployExampleExternalContract.tags = ["LevelUpNFT"];

@@ -20,9 +20,9 @@ const deployStaker: DeployFunction = async function (hre: HardhatRuntimeEnvironm
   */
   const { deployer } = await hre.getNamedAccounts();
   const { deploy, get } = hre.deployments;
-  const exampleExternalContract = await get("ExampleExternalContract");
+  const exampleExternalContract = await get("LevelUpNFT");
 
-  await deploy("Staker", {
+  await deploy("NFTStaker", {
     from: deployer,
     // Contract constructor arguments
     args: [exampleExternalContract.address],
@@ -35,4 +35,4 @@ const deployStaker: DeployFunction = async function (hre: HardhatRuntimeEnvironm
 
 export default deployStaker;
 
-deployStaker.tags = ["Staker"];
+deployStaker.tags = ["NFTStaker"];
