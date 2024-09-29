@@ -10,6 +10,7 @@ type MarketListing = {
   seller_address: string;
   price: number;
   listed_at: string;
+  image_url: string;
 };
 
 const Marketplace: React.FC = () => {
@@ -71,6 +72,7 @@ const Marketplace: React.FC = () => {
               nftId={listing.nft_id}
               sellerAddress={listing.seller_address}
               price={listing.price}
+              url={listing.image_url}
             />
           ))}
         </div>

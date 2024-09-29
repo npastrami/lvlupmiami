@@ -39,6 +39,7 @@ class NFTDatabase {
             nft_id TEXT NOT NULL,
             seller_address TEXT NOT NULL,
             price REAL NOT NULL,
+            image_url TEXT,
             listed_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
         `);
@@ -94,12 +95,12 @@ class NFTDatabase {
   }
 
   // Insert into marketplace_listings table
-  insertListing(nftId: string, sellerAddress: string, price: number): Promise<number> {
+  insertListing(nftId: string, sellerAddress: string, price: number, image_url: string): Promise<number> {
     const insertListingSQL = `
-      INSERT INTO marketplace_listings (nft_id, seller_address, price)
-      VALUES (?, ?, ?)
+      INSERT INTO marketplace_listings (nft_id, seller_address, price, image_url)
+      VALUES (?, ?, ?, ?)
     `;
-    return this.insert(insertListingSQL, [nftId, sellerAddress, price]);
+    return this.insert(insertListingSQL, [nftId, sellerAddress, price, image_url]);
   }
 
   // Insert into transactions_history table
@@ -208,7 +209,7 @@ class NFTDatabase {
   }
 }
 
-// Example Usage
+// // Example Usage
 // (async () => {
 //   const db = new NFTDatabase("nft_database.db");
 
