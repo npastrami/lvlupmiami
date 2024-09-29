@@ -24,14 +24,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { nftId, sellerAddress, price } = body;
+    const { nftId: nftId, sellerAddress: sellerAddress, price: price, image_url: image_url } = body;
 
     if (!nftId || !sellerAddress || !price) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     await db.open();
-    const newListingId = await db.insertListing(nftId, sellerAddress, price);
+    const newListingId = await db.insertListing(nftId, sellerAddress, price, image_url);
 
     return NextResponse.json({ message: "Listing created successfully", listingId: newListingId });
   } catch (error) {

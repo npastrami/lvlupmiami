@@ -11,7 +11,7 @@ type MarketListingCardProps = {
 const MarketListingCard: React.FC<MarketListingCardProps> = ({ nftId, sellerAddress, price, url }) => {
   return (
     <div className="border border-secondary rounded-lg p-4 bg-base-100 w-60 h-[380px] shadow-md flex flex-col justify-between">
-      <div className="w-full h-40 relative mb-4">
+      <div className="w-full h-40 relative mb-4 z-10">
         <Image
           src={`/${url}`}
           alt={`NFT ${nftId}`}

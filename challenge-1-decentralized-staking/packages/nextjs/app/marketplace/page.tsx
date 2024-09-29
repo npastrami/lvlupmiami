@@ -17,21 +17,22 @@ const Marketplace: React.FC = () => {
   const [marketListings, setMarketListings] = useState<MarketListing[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
+  const fetchMarketListings = async () => {
+    try {
+      const response = await fetch("/api/marketplace");
+      if (!response.ok) throw new Error("Failed to fetch listings");
+
+      const data = await response.json();
+      setMarketListings(data);
+    } catch (error) {
+      console.error("Error fetching market listings:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchMarketListings = async () => {
-      try {
-        const response = await fetch("/api/marketplace");
-        if (!response.ok) throw new Error("Failed to fetch listings");
-
-        const data = await response.json();
-        setMarketListings(data);
-      } catch (error) {
-        console.error("Error fetching market listings:", error);
-      }
-    };
-
     fetchMarketListings();
   }, []);
+
 
   // Filter listings by price if maxPrice is set
   const filteredListings = maxPrice
@@ -43,7 +44,7 @@ const Marketplace: React.FC = () => {
       {/* Header Section */}
       <div className="flex justify-between items-center w-full px-6 lg:px-10">
         <h2 className="text-3xl font-bold">Marketplace Listings</h2>
-        <CreateListingButton />
+        <CreateListingButton onAddListing={fetchMarketListings} />
       </div>
 
       {/* Max Price Filter */}
