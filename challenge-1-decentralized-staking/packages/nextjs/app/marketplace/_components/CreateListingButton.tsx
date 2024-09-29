@@ -1,14 +1,18 @@
-// CreateListingButton.tsx
 "use client";
 
 import { useState } from "react";
 
-const CreateListingButton = () => {
+interface CreateListingButtonProps {
+  onAddListing: () => void;
+}
+
+const CreateListingButton: React.FC<CreateListingButtonProps> = ({ onAddListing }) => {
   const [showCreateListingModal, setShowCreateListingModal] = useState(false);
   const [newListing, setNewListing] = useState({
     nftId: "",
     sellerAddress: "",
     price: "",
+    image_url: ""
   });
 
   const handleCreateListing = async () => {
@@ -22,13 +26,19 @@ const CreateListingButton = () => {
           nftId: newListing.nftId,
           sellerAddress: newListing.sellerAddress,
           price: parseFloat(newListing.price),
+          image_url: newListing.image_url, // Include image URL in request
         }),
       });
 
       if (response.ok) {
         alert("Listing created successfully!");
         setShowCreateListingModal(false);
-        setNewListing({ nftId: "", sellerAddress: "", price: "" }); // Reset form
+        setNewListing({ nftId: "", sellerAddress: "", price: "", image_url: "" }); // Reset form
+
+        // Call onAddListing to refresh the marketplace listings in the parent component
+        if (onAddListing) {
+          onAddListing();
+        }
       } else {
         alert("Failed to create listing.");
       }
@@ -46,7 +56,7 @@ const CreateListingButton = () => {
 
       {/* Modal for Creating New Listing */}
       {showCreateListingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg">
             <h3 className="text-xl font-bold mb-4">Create New Listing</h3>
             <input
@@ -68,6 +78,13 @@ const CreateListingButton = () => {
               placeholder="Price (ETH)"
               value={newListing.price}
               onChange={(e) => setNewListing({ ...newListing, price: e.target.value })}
+              className="input input-bordered mb-4 w-full"
+            />
+            <input
+              type="text"
+              placeholder="File Path"
+              value={newListing.image_url}
+              onChange={(e) => setNewListing({ ...newListing, image_url: e.target.value })}
               className="input input-bordered mb-4 w-full"
             />
             <div className="flex justify-end">

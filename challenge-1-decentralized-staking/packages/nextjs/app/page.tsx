@@ -154,14 +154,11 @@ const Home: NextPage = () => {
 
         <div className="max-w-3xl mx-auto text-center mt-8">
           <p className="text-center text-lg">
-          Our project harnesses the power of decentralized technology to redefine the way users interact with blockchain ecosystems.
-           Built with SpeedRunEthereum and Scaffoldeth, our solution addresses key challenges in decentralized finance and digital\
-            ownership through a seamless and user-friendly application. Through innovation, we aim to set a new standard for 
-            decentralized applications and contribute meaningfully to the future of Web3.
+          Level-Up connects People with Experiences. Through community collaboration and blockchain technology,
+           we hope to add new utility for NFTs on the Ethereum blockchain. Users can mint new, or use the market place to acquire upgradeable NFT passes.
           </p>
           <p className="text-center text-lg mt-4">
-            🌟 The final deliverable is deploying a Dapp that lets users send ether to a contract and stake if the
-            conditions are met, then deploy your app to a public webserver. Submit the url on{" "}
+            🌟 Insipired by FIU's passion for Hospitality. In collaboration with EthMiami. Built for ShellHacks. Powered by Scaffold-eth and {" "}
             <a href="https://speedrunethereum.com/" target="_blank" rel="noreferrer" className="underline">
               SpeedRunEthereum.com
             </a>{" "}
