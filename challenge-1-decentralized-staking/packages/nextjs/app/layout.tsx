@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     description,
   },
   icons: {
-    icon: [{ url: "/favicon.png", sizes: "32x32", type: "image/png" }],
+    icon: [{ url: "/leveluplogo1.png", sizes: "32x32", type: "image/png" }],
   },
 };
 
