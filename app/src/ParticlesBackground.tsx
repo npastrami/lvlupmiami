@@ -23,7 +23,7 @@ const ParticlesBackground: React.FC = () => {
             value: "#ffffff",
           },
           size: {
-            value: 2,
+            value: { min: 1, max: 5 },
           },
         },
       }}
