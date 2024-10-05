@@ -1,4 +1,4 @@
-package main
+package nftdatabase
 
 import (
     "context"
@@ -8,6 +8,30 @@ import (
     "github.com/jackc/pgx/v4/pgxpool"
 )
 
+// NFTDatabase represents the database for managing NFT data
+type NFTDatabase struct {
+    Pool *pgxpool.Pool
+}
+
+// NewNFTDatabase initializes a new NFTDatabase instance
+func NewNFTDatabase(dbURL string) (*NFTDatabase, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    pool, err := pgxpool.Connect(ctx, dbURL)
+    if err != nil {
+        return nil, fmt.Errorf("failed to connect to NFT database: %w", err)
+    }
+
+    // Initialize tables in the NFT database
+    if err := InitializeNFTDatabase(pool); err != nil {
+        return nil, fmt.Errorf("failed to initialize NFT database tables: %w", err)
+    }
+
+    return &NFTDatabase{Pool: pool}, nil
+}
+
+// InitializeNFTDatabase initializes tables for NFTs
 func InitializeNFTDatabase(pool *pgxpool.Pool) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
@@ -20,16 +44,6 @@ func InitializeNFTDatabase(pool *pgxpool.Pool) error {
             price REAL NOT NULL,
             image_url TEXT,
             listed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `
-    createTransactionsHistoryTable := `
-        CREATE TABLE IF NOT EXISTS transactions_history (
-            transaction_id SERIAL PRIMARY KEY,
-            nft_id TEXT NOT NULL,
-            buyer_address TEXT NOT NULL,
-            seller_address TEXT NOT NULL,
-            price REAL NOT NULL,
-            transaction_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `
     createFreshMintsTable := `
@@ -50,31 +64,23 @@ func InitializeNFTDatabase(pool *pgxpool.Pool) error {
     `
 
     // Execute the table creation queries
-    _, err := pool.Exec(ctx, createMarketplaceListingsTable)
-    if err != nil {
-        return fmt.Errorf("failed to create marketplace_listings table: %w", err)
+    queries := []string{
+        createMarketplaceListingsTable,
+        createFreshMintsTable,
+        createQueuedMintsTable,
     }
 
-    _, err = pool.Exec(ctx, createTransactionsHistoryTable)
-    if err != nil {
-        return fmt.Errorf("failed to create transactions_history table: %w", err)
-    }
-
-    _, err = pool.Exec(ctx, createFreshMintsTable)
-    if err != nil {
-        return fmt.Errorf("failed to create fresh_mints table: %w", err)
-    }
-
-    _, err = pool.Exec(ctx, createQueuedMintsTable)
-    if err != nil {
-        return fmt.Errorf("failed to create queued_mints table: %w", err)
+    for _, query := range queries {
+        if _, err := pool.Exec(ctx, query); err != nil {
+            return fmt.Errorf("failed to execute query (%s): %w", query, err)
+        }
     }
 
     return nil
 }
 
-// Function to insert a listing into marketplace_listings
-func InsertListing(pool *pgxpool.Pool, nftID, sellerAddress string, price float64, imageURL string) error {
+// InsertListing inserts a new listing into the marketplace_listings table
+func (db *NFTDatabase) InsertListing(nftID, sellerAddress string, price float64, imageURL string) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
@@ -82,7 +88,7 @@ func InsertListing(pool *pgxpool.Pool, nftID, sellerAddress string, price float6
         INSERT INTO marketplace_listings (nft_id, seller_address, price, image_url)
         VALUES ($1, $2, $3, $4)
     `
-    _, err := pool.Exec(ctx, query, nftID, sellerAddress, price, imageURL)
+    _, err := db.Pool.Exec(ctx, query, nftID, sellerAddress, price, imageURL)
     if err != nil {
         return fmt.Errorf("failed to insert listing: %w", err)
     }
@@ -92,9 +98,12 @@ func InsertListing(pool *pgxpool.Pool, nftID, sellerAddress string, price float6
 
 // GetAllListings fetches all marketplace listings from the database
 func (db *NFTDatabase) GetAllListings() ([]map[string]interface{}, error) {
-    rows, err := db.Pool.Query(context.Background(), "SELECT * FROM marketplace_listings")
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    rows, err := db.Pool.Query(ctx, "SELECT * FROM marketplace_listings")
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("failed to fetch listings: %w", err)
     }
     defer rows.Close()
 
@@ -104,10 +113,10 @@ func (db *NFTDatabase) GetAllListings() ([]map[string]interface{}, error) {
         var listingID int
         var nftID, sellerAddress, imageURL string
         var price float64
-        var listedAt string
+        var listedAt time.Time
 
         if err := rows.Scan(&listingID, &nftID, &sellerAddress, &price, &imageURL, &listedAt); err != nil {
-            return nil, err
+            return nil, fmt.Errorf("failed to scan row: %w", err)
         }
 
         listings = append(listings, map[string]interface{}{
