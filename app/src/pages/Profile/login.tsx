@@ -15,14 +15,29 @@ const Login: React.FC = () => {
         username,
         password,
       });
-
+  
       if (response.status === 200) {
         // Store the token in local storage
         localStorage.setItem('authToken', response.data.token);
         navigate('/');
       }
     } catch (err) {
-      setError('Invalid username or password');
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 403) {
+          setError('Please verify your email before logging in.');
+        } else if (err.response.status === 401) {
+          setError('Invalid username or password.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+  
+      // Set a timeout to remove the error message after 10 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 10000);
     }
   };
 

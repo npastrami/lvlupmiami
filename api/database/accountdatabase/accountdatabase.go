@@ -4,8 +4,8 @@ import (
     "context"
     "fmt"
     "time"
-
     "github.com/jackc/pgx/v4/pgxpool"
+    "golang.org/x/crypto/bcrypt"
 )
 
 // AccountDatabase represents the database for managing accounts
@@ -41,11 +41,9 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
         CREATE TABLE IF NOT EXISTS accountsettings (
             account_id SERIAL PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
-            eth_wallet_id TEXT,
-            nft_addresses TEXT,
-            marketplace_listing_ids TEXT
+            password TEXT NOT NULL,
+            email_verified BOOLEAN DEFAULT FALSE
         );
         `,
         `
@@ -61,7 +59,6 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
         `,
     }
 
-    // Execute the table creation queries
     for _, q := range queries {
         if _, err := pool.Exec(ctx, q); err != nil {
             return fmt.Errorf("failed to execute query: %w", err)
@@ -71,44 +68,100 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
     return nil
 }
 
-// InsertAccount inserts a new account into the accountsettings table
-func (db *AccountDatabase) InsertAccount(username, password, email, ethWalletID, nftAddresses, marketplaceListingIDs string) error {
+// CreateUser inserts a new user into the accountsettings table
+func (db *AccountDatabase) CreateUser(username, password, email string) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    query := `
-        INSERT INTO accountsettings (username, password, email, eth_wallet_id, nft_addresses, marketplace_listing_ids)
-        VALUES ($1, $2, $3, $4, $5, $6)
-    `
-    _, err := db.Pool.Exec(ctx, query, username, password, email, ethWalletID, nftAddresses, marketplaceListingIDs)
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
     if err != nil {
-        return fmt.Errorf("failed to insert account: %w", err)
+        return fmt.Errorf("failed to hash password: %w", err)
+    }
+
+    query := `
+        INSERT INTO accountsettings (username, password, email)
+        VALUES ($1, $2, $3)
+    `
+    _, err = db.Pool.Exec(ctx, query, username, string(hashedPassword), email)
+    if err != nil {
+        return fmt.Errorf("failed to create user: %w", err)
     }
 
     return nil
 }
 
+// GetUserByUsername fetches a user by their username
+func (db *AccountDatabase) GetUserByUsername(username string) (*User, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var user User
+    err := db.Pool.QueryRow(ctx, `
+        SELECT account_id, username, email, password, email_verified
+        FROM accountsettings
+        WHERE username = $1
+    `, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.EmailVerified)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get user by username: %w", err)
+    }
+
+    return &user, nil
+}
+
 // ValidateCredentials checks if the provided username and password are correct
-func (db *AccountDatabase) ValidateCredentials(username, password string) (bool, error) {
+func (db *AccountDatabase) ValidateCredentials(username, password string) (bool, bool, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
     var storedPassword string
-    query := `SELECT password FROM accountsettings WHERE username=$1`
-    err := db.Pool.QueryRow(ctx, query, username).Scan(&storedPassword)
+    var emailVerified bool
+    query := `SELECT password, email_verified FROM accountsettings WHERE username=$1`
+    err := db.Pool.QueryRow(ctx, query, username).Scan(&storedPassword, &emailVerified)
     if err != nil {
         if err.Error() == "no rows in result set" {
-            return false, nil // Username not found
+            return false, false, nil // Username not found
         }
-        return false, fmt.Errorf("failed to query accountsettings: %w", err)
+        return false, false, fmt.Errorf("failed to query accountsettings: %w", err)
     }
 
-    // Check if the password matches (for simplicity, we're using plain text passwords here)
-    if storedPassword == password {
-        return true, nil
+    // Check if the password matches
+    if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password)); err != nil {
+        return false, emailVerified, nil
     }
 
-    return false, nil
+    return true, emailVerified, nil
+}
+
+// VerifyUserEmail sets the email_verified flag to true for a given username
+func (db *AccountDatabase) VerifyUserEmail(username string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `UPDATE accountsettings SET email_verified = TRUE WHERE username = $1`
+    _, err := db.Pool.Exec(ctx, query, username)
+    if err != nil {
+        return fmt.Errorf("failed to verify email: %w", err)
+    }
+
+    return nil
+}
+
+// UpdateAccount updates account details in the accountsettings table
+func (db *AccountDatabase) UpdateAccount(username, newUsername, newEmail string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    _, err := db.Pool.Exec(ctx, `
+        UPDATE accountsettings
+        SET username = COALESCE($1, username), email = COALESCE($2, email)
+        WHERE username = $3
+    `, newUsername, newEmail, username)
+
+    if err != nil {
+        return fmt.Errorf("failed to update account: %w", err)
+    }
+
+    return nil
 }
 
 // AddTransaction adds a new transaction to the transaction_history table
@@ -128,21 +181,11 @@ func (db *AccountDatabase) AddTransaction(clientID, transactionType, itemsSent, 
     return nil
 }
 
-// UpdateAccount updates account details in the accountsettings table
-func (db *AccountDatabase) UpdateAccount(username, newUsername, newEmail string) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-
-    // Define and execute the update query
-    _, err := db.Pool.Exec(ctx, `
-        UPDATE accountsettings
-        SET username = $1, email = $2
-        WHERE username = $3
-    `, newUsername, newEmail, username)
-    
-    if err != nil {
-        return fmt.Errorf("failed to update account: %w", err)
-    }
-
-    return nil
+// User represents a user in the system
+type User struct {
+    ID            int
+    Username      string
+    Email         string
+    Password      string
+    EmailVerified bool
 }
