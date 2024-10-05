@@ -1,17 +1,21 @@
-// main.go
 package main
 
 import (
     "log"
     "github.com/gofiber/fiber/v2"
     "github.com/gofiber/fiber/v2/middleware/logger"
-    "github.com/gofiber/fiber/v2/middleware/cors"  // Import the CORS middleware
+    "github.com/gofiber/fiber/v2/middleware/cors"
+    "golang.org/x/crypto/bcrypt"
     "shellhacks/api/database/nftdatabase"
     "shellhacks/api/database/accountdatabase"
+    "shellhacks/api/utils"
+    "github.com/dgrijalva/jwt-go"
+    "time"
 )
 
 var nftDB *nftdatabase.NFTDatabase
 var accountDB *accountdatabase.AccountDatabase
+var secretKey = []byte("mysecretkey")
 
 func main() {
     // Separate Database connection URLs for NFT and Account databases
@@ -50,6 +54,7 @@ func main() {
     app.Post("/api/signup", createAccountHandler)
     app.Post("/api/transaction", addTransactionHandler)
     app.Put("/api/account/update", updateAccountHandler)
+    app.Get("/api/verify-email", verifyEmailHandler)
 
     // Start server
     log.Fatal(app.Listen(":3000"))
@@ -82,22 +87,48 @@ func loginHandler(c *fiber.Ctx) error {
         })
     }
 
-    isValid, err := accountDB.ValidateCredentials(loginReq.Username, loginReq.Password)
+    // Retrieve user details, including whether the email is verified
+    user, err := accountDB.GetUserByUsername(loginReq.Username)
     if err != nil {
-        log.Printf("Error validating credentials: %v", err)
+        log.Printf("Error finding user: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Error validating credentials",
+            "error": "Error finding user",
         })
     }
 
-    if !isValid {
+    if user == nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
             "error": "Invalid username or password",
         })
     }
 
+    // Check if the password is correct
+    err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
+    if err != nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid username or password",
+        })
+    }
+
+    // Check if the email is verified
+    if !user.EmailVerified {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Please verify your email before logging in.",
+        })
+    }
+
+    // If everything is correct, return success message
+    token, err := generateVerificationToken(user.Username)
+    if err != nil {
+        log.Printf("Error generating token: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error generating token",
+        })
+    }
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "message": "Login successful",
+        "token":   token,
     })
 }
 
@@ -116,7 +147,7 @@ func createAccountHandler(c *fiber.Ctx) error {
         })
     }
 
-    err := accountDB.InsertAccount(accountReq.Username, accountReq.Password, accountReq.Email, "", "", "")
+    err := accountDB.CreateUser(accountReq.Username, accountReq.Password, accountReq.Email)
     if err != nil {
         log.Printf("Error creating account: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -124,8 +155,74 @@ func createAccountHandler(c *fiber.Ctx) error {
         })
     }
 
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "message": "Account created successfully",
+    token, err := generateVerificationToken(accountReq.Username)
+    if err != nil {
+        log.Printf("Error generating verification token: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error generating verification token",
+        })
+    }
+
+    verificationLink := "http://localhost:3000/api/verify-email?token=" + token
+    log.Printf("Verification link: %s", verificationLink) // Simulate sending an email
+
+    // Send the verification email to the user's email address
+    emailSubject := "Verify your email address"
+    emailBody := "Please verify your account by clicking the link: " + verificationLink
+    if err := utils.SendEmail(accountReq.Email, emailSubject, emailBody); err != nil {
+        log.Printf("Error sending verification email: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error sending verification email",
+        })
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "Account created successfully! Please check your email to verify your account.",
+    })
+}
+
+// Generate verification token
+func generateVerificationToken(username string) (string, error) {
+    claims := jwt.MapClaims{}
+    claims["username"] = username
+    claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(secretKey)
+}
+
+// Handler function to verify the user's email
+func verifyEmailHandler(c *fiber.Ctx) error {
+    tokenStr := c.Query("token")
+
+    token, parseErr := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fiber.ErrUnauthorized
+        }
+        return secretKey, nil
+    })
+
+    if parseErr != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid or expired token",
+        })
+    }
+
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        username := claims["username"].(string)
+        if verifyErr := accountDB.VerifyUserEmail(username); verifyErr != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Error verifying email",
+            })
+        }
+
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "message": "Email verified successfully!",
+        })
+    }
+
+    return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+        "error": "Invalid or expired token",
     })
 }
 
@@ -146,9 +243,8 @@ func addTransactionHandler(c *fiber.Ctx) error {
         })
     }
 
-    err := accountDB.AddTransaction(serviceReq.ClientID, serviceReq.TransactionType, serviceReq.ItemsSent, serviceReq.ItemsReceived, serviceReq.Notes)
-    if err != nil {
-        log.Printf("Error adding transaction: %v", err)
+    if addErr := accountDB.AddTransaction(serviceReq.ClientID, serviceReq.TransactionType, serviceReq.ItemsSent, serviceReq.ItemsReceived, serviceReq.Notes); addErr != nil {
+        log.Printf("Error adding transaction: %v", addErr)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Error adding transaction",
         })
@@ -174,9 +270,8 @@ func updateAccountHandler(c *fiber.Ctx) error {
         })
     }
 
-    err := accountDB.UpdateAccount(updateReq.Username, updateReq.NewUsername, updateReq.NewEmail)
-    if err != nil {
-        log.Printf("Error updating account: %v", err)
+    if updateErr := accountDB.UpdateAccount(updateReq.Username, updateReq.NewUsername, updateReq.NewEmail); updateErr != nil {
+        log.Printf("Error updating account: %v", updateErr)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Error updating account",
         })

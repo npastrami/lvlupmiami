@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { YStack, Input, Text, Button, Card } from 'tamagui';
 
 const Signup: React.FC = () => {
@@ -8,7 +7,7 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [message, setMessage] = useState<string | null>(null); // New state for the message
 
   const handleSignup = async () => {
     try {
@@ -19,7 +18,14 @@ const Signup: React.FC = () => {
       });
 
       if (response.status === 201) {
-        navigate('/login');
+        // Display the message instead of navigating directly
+        setMessage('User was registered successfully! Please check your email to verify your account.');
+        setError(null);
+
+        // Wait for 10 seconds, then refresh the page
+        setTimeout(() => {
+          window.location.reload();
+        }, 10000);
       }
     } catch (err) {
       setError('Failed to create account. Please try again.');
@@ -50,6 +56,11 @@ const Signup: React.FC = () => {
         {error && (
           <Text color="red" marginBottom="$4">
             {error}
+          </Text>
+        )}
+        {message && (
+          <Text color="green" marginBottom="$4">
+            {message}
           </Text>
         )}
         <YStack space="$4" width="80%">
