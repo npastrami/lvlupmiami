@@ -1,4 +1,19 @@
 {
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "react-native": ["./node_modules/react-native-web"]
+    },
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "target": "ES6",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
