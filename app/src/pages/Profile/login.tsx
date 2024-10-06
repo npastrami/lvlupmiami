@@ -3,7 +3,11 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { YStack, Input, Text, Button, Card } from 'tamagui';
 
-const Login: React.FC = () => {
+interface LoginProps {
+  setIsAuthenticated: (auth: boolean) => void;
+}
+
+const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,10 +19,11 @@ const Login: React.FC = () => {
         username,
         password,
       });
-  
+
       if (response.status === 200) {
         // Store the token in local storage
         localStorage.setItem('authToken', response.data.token);
+        setIsAuthenticated(true);
         navigate('/');
       }
     } catch (err) {
@@ -33,7 +38,7 @@ const Login: React.FC = () => {
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
-  
+
       // Set a timeout to remove the error message after 10 seconds
       setTimeout(() => {
         setError(null);
@@ -42,20 +47,16 @@ const Login: React.FC = () => {
   };
 
   return (
-    <YStack
-      alignItems="center"
-      justifyContent="center"
-      height="90vh" // Dark background for the whole page
-    >
+    <YStack alignItems="center" justifyContent="center" height="90vh">
       <Card
         bordered
         elevate
         padding="$6"
         width={600}
         height={600}
-        backgroundColor="#F8EAF6" // Light purple card background
+        backgroundColor="#F8EAF6"
         borderRadius="$6"
-        elevation="$4" // Use elevation to create shadow instead of boxShadow
+        elevation="$4"
         alignItems="center"
         justifyContent="center"
       >
