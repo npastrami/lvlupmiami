@@ -37,6 +37,8 @@ func main() {
     app := fiber.New()
     app.Use(logger.New())
 
+    //deeznutz
+
     // Use CORS middleware to allow cross-origin requests
     app.Use(cors.New(cors.Config{
         AllowOrigins: "*", // Change this to your front-end origin, e.g. "http://127.0.0.1:5173"
