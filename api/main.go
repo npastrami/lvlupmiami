@@ -57,6 +57,7 @@ func main() {
     app.Put("/api/account/update", updateAccountHandler)
     app.Get("/api/verify-email", verifyEmailHandler)
     app.Post("/api/creator_application", createCreatorApplicationHandler)
+    app.Put("/api/account/update-wallet", updateWalletHandler)
 
     // Start server
     log.Fatal(app.Listen(":3000"))
@@ -365,5 +366,65 @@ func createCreatorApplicationHandler(c *fiber.Ctx) error {
 
     return c.Status(fiber.StatusCreated).JSON(fiber.Map{
         "message": "Creator application submitted successfully!",
+    })
+}
+
+// Handler function to update the wallet ID
+func updateWalletHandler(c *fiber.Ctx) error {
+    type UpdateWalletRequest struct {
+        WalletID string `json:"wallet_id"`
+    }
+
+    authHeader := c.Get("Authorization")
+    if authHeader == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Missing authorization header",
+        })
+    }
+
+    tokenStr := authHeader[len("Bearer "):]
+    token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fiber.ErrUnauthorized
+        }
+        return secretKey, nil
+    })
+
+    if err != nil || !token.Valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token",
+        })
+    }
+
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    username := claims["username"].(string)
+
+    var walletReq UpdateWalletRequest
+    if err := c.BodyParser(&walletReq); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    if walletReq.WalletID == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Wallet ID cannot be empty",
+        })
+    }
+
+    if updateErr := accountDB.UpdateWalletID(username, walletReq.WalletID); updateErr != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to update wallet ID",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "Wallet ID updated successfully!",
     })
 }

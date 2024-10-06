@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { XStack } from 'tamagui';
+import { XStack, Text } from 'tamagui';
 import '../assets/fonts/fonts.css'; // Import the CSS file containing the font-face definitions
+import levelUpLogo from '../assets/leveluplogo1.png'; 
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -20,18 +21,33 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
       <XStack space="$6" alignItems="center">
         {/* Left-Justified Navigation Links */}
         <XStack space="$6" alignItems="center">
-          <Link 
-            to="/" 
-            style={{ 
+        <Link 
+          to="/" 
+          style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            textDecoration: 'none', 
+            marginRight: '24px',
+          }}
+        >
+          <img
+            src={levelUpLogo}
+            alt="Level-Up Logo"
+            width={32}
+            height={32}
+            style={{ marginRight: '8px' }}
+          />
+          <Text
+            style={{
               color: 'white', 
-              textDecoration: 'none', 
-              marginRight: '24px', // Increased spacing between items
-              fontSize: '2rem', // Double the font size
-              fontWeight: 'bold', // Make text bold for better readability
-              fontFamily: 'Paladins Laser' // Ensure the correct font-family is applied
-            }}>
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              fontFamily: 'Paladins Laser'
+            }}
+          >
             Level-Up
-          </Link>
+          </Text>
+        </Link>
           <Link 
             to="/pages/Marketplace/marketHome" 
             style={{ 
