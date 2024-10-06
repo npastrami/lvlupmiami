@@ -331,7 +331,8 @@ func getProfileHandler(c *fiber.Ctx) error {
     }
 
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "username": user.Username,
-        "email":    user.Email,
+        "username":    user.Username,
+        "email":       user.Email,
+        "account_type": user.AccountType, // Include account_type in the response
     })
 }

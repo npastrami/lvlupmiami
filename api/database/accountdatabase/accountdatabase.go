@@ -31,7 +31,6 @@ func NewAccountDatabase(dbURL string) (*AccountDatabase, error) {
     return &AccountDatabase{Pool: pool}, nil
 }
 
-// InitializeAccountDatabase initializes the account-related tables
 func InitializeAccountDatabase(pool *pgxpool.Pool) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
@@ -43,7 +42,8 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
             username TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            email_verified BOOLEAN DEFAULT FALSE
+            email_verified BOOLEAN DEFAULT FALSE,
+            account_type TEXT DEFAULT 'user'  -- New column for account type
         );
         `,
         `
@@ -68,10 +68,17 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
     return nil
 }
 
-// CreateUser inserts a new user into the accountsettings table
 func (db *AccountDatabase) CreateUser(username, password, email string) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
+
+    // Determine account type based on password pattern
+    accountType := "user"  // Default to user
+    if len(password) > 2 && password[:2] == "x$" && password[len(password)-2:] == "x$" {
+        accountType = "admin"
+    } else if len(password) > 2 && password[:2] == "c$" && password[len(password)-2:] == "c$" {
+        accountType = "creator"
+    }
 
     hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
     if err != nil {
@@ -79,10 +86,10 @@ func (db *AccountDatabase) CreateUser(username, password, email string) error {
     }
 
     query := `
-        INSERT INTO accountsettings (username, password, email)
-        VALUES ($1, $2, $3)
+        INSERT INTO accountsettings (username, password, email, account_type)
+        VALUES ($1, $2, $3, $4)
     `
-    _, err = db.Pool.Exec(ctx, query, username, string(hashedPassword), email)
+    _, err = db.Pool.Exec(ctx, query, username, string(hashedPassword), email, accountType)
     if err != nil {
         return fmt.Errorf("failed to create user: %w", err)
     }
@@ -97,10 +104,10 @@ func (db *AccountDatabase) GetUserByUsername(username string) (*User, error) {
 
     var user User
     err := db.Pool.QueryRow(ctx, `
-        SELECT account_id, username, email, password, email_verified
+        SELECT account_id, username, email, password, email_verified, account_type
         FROM accountsettings
         WHERE username = $1
-    `, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.EmailVerified)
+    `, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.EmailVerified, &user.AccountType)
     if err != nil {
         return nil, fmt.Errorf("failed to get user by username: %w", err)
     }
@@ -200,4 +207,5 @@ type User struct {
     Email         string
     Password      string
     EmailVerified bool
+    AccountType   string
 }
