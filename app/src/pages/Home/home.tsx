@@ -33,13 +33,15 @@ const HomePage: React.FC = () => {
 
       {/* About Us Section */}
       <View padding="$4" alignItems="center">
-        <Text fontSize="$6" color="white">
+        <Text fontSize="20px" fontWeight="bold" textDecorationLine="underline" color="white">
           About Us
         </Text>
-        <Text color="white">
-         Level-Up connects People with Experiences. Through community collaboration and blockchain technology,
-         we hope to add new utility for NFTs on the Ethereum blockchain. Users can mint new, or use the market place to acquire upgradeable NFT passes.
-        </Text>
+        <div style={{ width: '1050px', height: '200px', overflow: 'hidden', backgroundColor: 'black', padding: '10px' }}>
+          <Text color="white">
+            Level-Up connects People with Experiences. Through community collaboration and blockchain technology, 
+            we hope to add new utility for NFTs on the Ethereum blockchain. Users can mint new, or use the marketplace to acquire upgradeable NFT passes.
+          </Text>
+        </div>
       </View>
     </View>
   );

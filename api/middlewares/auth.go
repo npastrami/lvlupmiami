@@ -1,29 +1,31 @@
 package middlewares
 
 import (
+    "log"
     "github.com/gofiber/fiber/v2"
-    "github.com/golang-jwt/jwt/v4"
+    "shellhacks/api/utils"
     "strings"
 )
 
 func JWTMiddleware() fiber.Handler {
     return func(c *fiber.Ctx) error {
         authHeader := c.Get("Authorization")
+        log.Println("Authorization Header:", authHeader)
+
         if !strings.HasPrefix(authHeader, "Bearer ") {
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Authorization header missing or invalid"})
         }
 
         tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-        claims := &jwt.MapClaims{}
-        _, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-            return []byte("your_secret_key"), nil
-        })
-
+        claims, err := utils.ParseToken(tokenStr)
         if err != nil {
+            log.Println("Error parsing token:", err)
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token"})
         }
 
-        c.Locals("userID", claims["id"])
+        // Store the username in the context for use in future handlers
+        c.Locals("username", claims.Username)
+
         return c.Next()
     }
 }
