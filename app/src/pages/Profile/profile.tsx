@@ -5,7 +5,9 @@ import { YStack, Input, Text, Button, Card } from 'tamagui';
 const Profile: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [accountType, setAccountType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -18,8 +20,10 @@ const Profile: React.FC = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+        
         setUsername(response.data.username);
         setEmail(response.data.email);
+        setAccountType(response.data.account_type); // Set accountType without checking if it is 'user'
       } catch (err) {
         setError('Failed to fetch profile. Please log in again.');
       }
@@ -31,12 +35,18 @@ const Profile: React.FC = () => {
   const handleUpdateProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
+      if (!currentPassword) {
+        setError('Please confirm your current password.');
+        return;
+      }
+
       const response = await axios.put(
         'http://localhost:3000/api/account/update',
         {
           username,
+          current_password: currentPassword,
           new_email: email,
-          new_password: password,
+          new_password: newPassword,
         },
         {
           headers: {
@@ -48,6 +58,8 @@ const Profile: React.FC = () => {
       if (response.status === 200) {
         setMessage('Profile updated successfully!');
         setError(null);
+        setCurrentPassword('');
+        setNewPassword('');
       }
     } catch (err) {
       setError('Failed to update profile. Please try again.');
@@ -55,11 +67,7 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <YStack
-      alignItems="center"
-      justifyContent="center"
-      height="90vh"
-    >
+    <YStack alignItems="center" justifyContent="center" height="90vh">
       <Card
         bordered
         elevate
@@ -75,6 +83,14 @@ const Profile: React.FC = () => {
         <Text fontSize="$7" color="#6A1B9A" fontWeight="bold" marginBottom="$4">
           Profile
         </Text>
+        
+        {/* Display account type if it is 'creator' or 'admin' */}
+        {accountType && accountType !== 'user' && (
+          <Text fontSize="$6" color="#AB47BC" marginBottom="$4">
+            {accountType}
+          </Text>
+        )}
+        
         {error && (
           <Text color="red" marginBottom="$4">
             {error}
@@ -85,6 +101,7 @@ const Profile: React.FC = () => {
             {message}
           </Text>
         )}
+        
         <YStack space="$4" width="80%">
           <Input
             placeholder="Username"
@@ -105,9 +122,19 @@ const Profile: React.FC = () => {
             padding="$3"
           />
           <Input
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
+            placeholder="Current Password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            borderColor="#6A1B9A"
+            borderWidth={1}
+            borderRadius="$3"
+            padding="$3"
+          />
+          <Input
+            placeholder="New Password"
+            value={newPassword}
+            onChangeText={setNewPassword}
             secureTextEntry
             borderColor="#6A1B9A"
             borderWidth={1}
