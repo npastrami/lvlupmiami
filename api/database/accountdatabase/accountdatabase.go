@@ -147,15 +147,26 @@ func (db *AccountDatabase) VerifyUserEmail(username string) error {
 }
 
 // UpdateAccount updates account details in the accountsettings table
-func (db *AccountDatabase) UpdateAccount(username, newUsername, newEmail string) error {
+func (db *AccountDatabase) UpdateAccount(username, newUsername, newEmail, newPassword string) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
+    var hashedPassword string
+    if newPassword != "" {
+        hp, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+        if err != nil {
+            return fmt.Errorf("failed to hash password: %w", err)
+        }
+        hashedPassword = string(hp)
+    }
+
     _, err := db.Pool.Exec(ctx, `
         UPDATE accountsettings
-        SET username = COALESCE($1, username), email = COALESCE($2, email)
-        WHERE username = $3
-    `, newUsername, newEmail, username)
+        SET username = COALESCE($1, username),
+            email = COALESCE($2, email),
+            password = COALESCE(NULLIF($3, ''), password)
+        WHERE username = $4
+    `, newUsername, newEmail, hashedPassword, username)
 
     if err != nil {
         return fmt.Errorf("failed to update account: %w", err)
@@ -163,6 +174,7 @@ func (db *AccountDatabase) UpdateAccount(username, newUsername, newEmail string)
 
     return nil
 }
+
 
 // AddTransaction adds a new transaction to the transaction_history table
 func (db *AccountDatabase) AddTransaction(clientID, transactionType, itemsSent, itemsReceived, notes string) error {

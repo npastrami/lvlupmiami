@@ -51,6 +51,7 @@ func main() {
     // Register routes
     app.Get("/api/listings", getListingsHandler)
     app.Post("/api/login", loginHandler)
+    app.Get("/api/profile", getProfileHandler)
     app.Post("/api/signup", createAccountHandler)
     app.Post("/api/transaction", addTransactionHandler)
     app.Put("/api/account/update", updateAccountHandler)
@@ -261,6 +262,7 @@ func updateAccountHandler(c *fiber.Ctx) error {
         Username    string `json:"username"`
         NewUsername string `json:"new_username"`
         NewEmail    string `json:"new_email"`
+        NewPassword string `json:"new_password"`
     }
 
     var updateReq UpdateAccountRequest
@@ -270,7 +272,7 @@ func updateAccountHandler(c *fiber.Ctx) error {
         })
     }
 
-    if updateErr := accountDB.UpdateAccount(updateReq.Username, updateReq.NewUsername, updateReq.NewEmail); updateErr != nil {
+    if updateErr := accountDB.UpdateAccount(updateReq.Username, updateReq.NewUsername, updateReq.NewEmail, updateReq.NewPassword); updateErr != nil {
         log.Printf("Error updating account: %v", updateErr)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Error updating account",
@@ -279,5 +281,57 @@ func updateAccountHandler(c *fiber.Ctx) error {
 
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "message": "Account updated successfully",
+    })
+}
+
+// Handler function to fetch user profile
+func getProfileHandler(c *fiber.Ctx) error {
+    authHeader := c.Get("Authorization")
+    if authHeader == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Missing authorization header",
+        })
+    }
+
+    // Parse the JWT token from the Authorization header
+    tokenStr := authHeader[len("Bearer "):]
+    token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fiber.ErrUnauthorized
+        }
+        return secretKey, nil
+    })
+
+    if err != nil || !token.Valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token",
+        })
+    }
+
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    username := claims["username"].(string)
+    user, err := accountDB.GetUserByUsername(username)
+    if err != nil {
+        log.Printf("Error finding user: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error finding user",
+        })
+    }
+
+    if user == nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "User not found",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "username": user.Username,
+        "email":    user.Email,
     })
 }

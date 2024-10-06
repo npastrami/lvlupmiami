@@ -1,0 +1,18 @@
+/* src/assets/fonts/fonts.css */
+@font-face {
+    font-family: 'Paladins';
+    src: url('/fonts/Paladins.woff2') format('woff2'),
+         url('/fonts/Paladins.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Paladins Laser';
+    src: url('/fonts/PaladinsLaser.woff2') format('woff2'),
+         url('/fonts/PaladinsLaser.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
