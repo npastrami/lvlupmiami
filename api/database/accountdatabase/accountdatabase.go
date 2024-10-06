@@ -47,6 +47,18 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
         );
         `,
         `
+        CREATE TABLE IF NOT EXISTS creator_applications (
+            application_id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            creator_name TEXT NOT NULL,
+            website TEXT NOT NULL,
+            social_media_1 TEXT,
+            social_media_2 TEXT,
+            reason TEXT NOT NULL,
+            application_date TIMESTAMP DEFAULT NOW()
+        );
+        `,
+        `
         CREATE TABLE IF NOT EXISTS transaction_history (
             transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             client_id TEXT NOT NULL,
@@ -57,6 +69,7 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
             status TEXT DEFAULT 'Pending...'
         );
         `,
+        
     }
 
     for _, q := range queries {
@@ -195,6 +208,23 @@ func (db *AccountDatabase) AddTransaction(clientID, transactionType, itemsSent, 
     _, err := db.Pool.Exec(ctx, query, clientID, transactionType, itemsSent, itemsReceived, notes)
     if err != nil {
         return fmt.Errorf("failed to add transaction: %w", err)
+    }
+
+    return nil
+}
+
+// AddCreatorApplication inserts a new creator application into the creator_applications table
+func (db *AccountDatabase) AddCreatorApplication(username, creatorName, website, socialMedia1, socialMedia2, reason string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `
+        INSERT INTO creator_applications (username, creator_name, website, social_media_1, social_media_2, reason)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `
+    _, err := db.Pool.Exec(ctx, query, username, creatorName, website, socialMedia1, socialMedia2, reason)
+    if err != nil {
+        return fmt.Errorf("failed to add creator application: %w", err)
     }
 
     return nil

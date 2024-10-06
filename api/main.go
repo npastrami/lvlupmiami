@@ -56,6 +56,7 @@ func main() {
     app.Post("/api/transaction", addTransactionHandler)
     app.Put("/api/account/update", updateAccountHandler)
     app.Get("/api/verify-email", verifyEmailHandler)
+    app.Post("/api/creator_application", createCreatorApplicationHandler)
 
     // Start server
     log.Fatal(app.Listen(":3000"))
@@ -334,5 +335,35 @@ func getProfileHandler(c *fiber.Ctx) error {
         "username":    user.Username,
         "email":       user.Email,
         "account_type": user.AccountType, // Include account_type in the response
+    })
+}
+
+// Handler function to create a creator application
+func createCreatorApplicationHandler(c *fiber.Ctx) error {
+    type CreatorApplicationRequest struct {
+        Username      string `json:"username"`
+        CreatorName   string `json:"creator_name"`
+        Website       string `json:"website"`
+        SocialMedia1  string `json:"social_media_1"`
+        SocialMedia2  string `json:"social_media_2"`
+        Reason        string `json:"reason"`
+    }
+
+    var appReq CreatorApplicationRequest
+    if err := c.BodyParser(&appReq); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    if err := accountDB.AddCreatorApplication(appReq.Username, appReq.CreatorName, appReq.Website, appReq.SocialMedia1, appReq.SocialMedia2, appReq.Reason); err != nil {
+        log.Printf("Error adding creator application: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error adding creator application",
+        })
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "Creator application submitted successfully!",
     })
 }

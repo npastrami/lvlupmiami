@@ -12,6 +12,7 @@ import MarketHome from './pages/Marketplace/marketHome';
 import LevelUp from './pages/Staking/levelup';
 import Logout from './pages/Profile/logout';
 import Navbar from './pages/Navbar';  // Assuming Navbar is in a components folder
+import CreatorApp from './pages/Profile/creatorapp';
 
 import { Stack } from 'tamagui';
 
@@ -44,6 +45,7 @@ const App: React.FC = () => {
               <Route path="/pages/Profile/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
               <Route path="/pages/Profile/signUp" element={<SignUp />} />
               <Route path="/pages/Profile/profile" element={<Profile />} />
+              <Route path="/profile/creator_application" element={<CreatorApp />} />
               <Route path="/pages/Marketplace/marketHome" element={<MarketHome />} />
               <Route path="/pages/Staking/levelup" element={<LevelUp />} />
               <Route path="/pages/Profile/logout" element={<Logout />} />

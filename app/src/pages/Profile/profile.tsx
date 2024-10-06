@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { YStack, Input, Text, Button, Card } from 'tamagui';
 
 const Profile: React.FC = () => {
@@ -10,6 +11,7 @@ const Profile: React.FC = () => {
   const [accountType, setAccountType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -66,6 +68,10 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleCreatorApplication = () => {
+    navigate('/profile/creator_application', { state: { username } });
+  };
+
   return (
     <YStack alignItems="center" justifyContent="center" height="90vh">
       <Card
@@ -80,9 +86,22 @@ const Profile: React.FC = () => {
         alignItems="center"
         justifyContent="center"
       >
-        <Text fontSize="$7" color="#6A1B9A" fontWeight="bold" marginBottom="$4">
+        <Text fontSize="$7" color="#6A1B9A" fontWeight="bold" marginBottom="$8">
           Profile
         </Text>
+
+        {accountType === 'user' && (
+            <Button
+              size="$2"
+              backgroundColor="#BA68C8"
+              hoverStyle={{ backgroundColor: '#AB47BC' }}
+              borderRadius="$4"
+              marginBottom="$4"
+              onPress={handleCreatorApplication}
+            >
+              Creator Application
+            </Button>
+          )}
         
         {/* Display account type if it is 'creator' or 'admin' */}
         {accountType && accountType !== 'user' && (
