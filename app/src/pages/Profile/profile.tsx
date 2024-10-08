@@ -105,7 +105,7 @@ const Profile: React.FC = () => {
       const token = localStorage.getItem('authToken');
 
       const response = await axios.put(
-        'http://localhost:3000/api/account/update-wallet',
+        'http://localhost:3000/api/account/update_wallet',
         { wallet_id: newWalletID },
         {
           headers: {
@@ -152,7 +152,7 @@ const Profile: React.FC = () => {
         const token = localStorage.getItem('authToken');
 
         const response = await axios.put(
-          'http://localhost:3000/api/account/update-wallet',
+          'http://localhost:3000/api/account/update_wallet',
           { wallet_id: newWalletID },
           {
             headers: {
@@ -177,6 +177,10 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleReleaseForm = () => {
+    navigate('/release_request', { state: { username } });
+  };  
+
   return (
     <YStack alignItems="center" justifyContent="center" height="90vh">
       <Card
@@ -194,6 +198,20 @@ const Profile: React.FC = () => {
         <Text fontSize="$7" color="#6A1B9A" fontWeight="bold" marginBottom="$8">
           Profile
         </Text>
+
+        {/* Add Release Form button for creators */}
+        {accountType === 'creator' && (
+          <Button
+            size="$2"
+            backgroundColor="#BA68C8"
+            hoverStyle={{ backgroundColor: '#AB47BC' }}
+            borderRadius="$4"
+            marginBottom="$4"
+            onPress={handleReleaseForm}
+          >
+            Release Form
+          </Button>
+        )}
 
         {accountType === 'user' && (
           <Button
