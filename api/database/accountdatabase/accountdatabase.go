@@ -60,6 +60,18 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
         );
         `,
         `
+        CREATE TABLE IF NOT EXISTS release_requests (
+            release_id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            release_title TEXT NOT NULL,
+            release_date DATE NOT NULL,
+            estimated_count TEXT NOT NULL,
+            release_notes TEXT,
+            media BYTEA NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+        `,
+        `
         CREATE TABLE IF NOT EXISTS transaction_history (
             transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             client_id TEXT NOT NULL,
@@ -244,6 +256,24 @@ func (db *AccountDatabase) UpdateWalletID(username, walletID string) error {
 
     return nil
 }
+
+// AddReleaseRequest inserts a new release request into the database
+func (db *AccountDatabase) AddReleaseRequest(username, releaseTitle, releaseDate string, estimatedCount string, releaseNotes string, media []byte) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `
+        INSERT INTO release_requests (username, release_title, release_date, estimated_count, release_notes, media)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `
+    _, err := db.Pool.Exec(ctx, query, username, releaseTitle, releaseDate, estimatedCount, releaseNotes, media)
+    if err != nil {
+        return fmt.Errorf("failed to add release request: %w", err)
+    }
+
+    return nil
+}
+
 
 // User represents a user in the system
 type User struct {

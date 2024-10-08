@@ -6,6 +6,7 @@ import (
     "shellhacks/api/database/accountdatabase"
     "shellhacks/api/utils"
     "time"
+    "fmt"
     "golang.org/x/crypto/bcrypt"
     "github.com/dgrijalva/jwt-go"
 )
@@ -14,13 +15,13 @@ var secretKey = []byte("mysecretkey") // Ensure you import and set your secretKe
 
 // RegisterAccountRoutes registers all account-related public routes
 func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDatabase) {
-    app.Get("/api/verify-email", func(c *fiber.Ctx) error {
+    app.Get("/api/verify_email", func(c *fiber.Ctx) error {
         return verifyEmailHandler(c, accountDB)
     })
-    app.Post("/api/account/creator-application", func(c *fiber.Ctx) error {
+    app.Post("/api/account/creator_application", func(c *fiber.Ctx) error {
         return createCreatorApplicationHandler(c, accountDB)
     })
-    app.Put("/api/account/update-wallet", func(c *fiber.Ctx) error {
+    app.Put("/api/account/update_wallet", func(c *fiber.Ctx) error {
         return updateWalletHandler(c, accountDB)
     })
     app.Put("/api/account/update", func(c *fiber.Ctx) error {
@@ -34,6 +35,9 @@ func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDat
     })
     app.Post("/api/signup", func(c *fiber.Ctx) error {
         return createAccountHandler(c, accountDB)
+    })
+    app.Post("/api/release_request", func(c *fiber.Ctx) error {
+        return releaseFormHandler(c, accountDB)
     })
 }
 
@@ -127,7 +131,7 @@ func createAccountHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDataba
         })
     }
 
-    verificationLink := "http://localhost:3000/api/verify-email?token=" + token
+    verificationLink := "http://localhost:3000/api/verify_email?token=" + token
     log.Printf("Verification link: %s", verificationLink) // Simulate sending an email
 
     // Send the verification email to the user's email address
@@ -358,5 +362,65 @@ func updateWalletHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabas
 
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "message": "Wallet ID updated successfully!",
+    })
+}
+
+// Handler function for processing the release form submission
+func releaseFormHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    // Extract form fields from query parameters
+    username := c.Query("username")
+    releaseTitle := c.Query("release_title")
+    releaseDate := c.Query("release_date")
+    estimatedCount := c.Query("estimated_count")
+    releaseNotes := c.Query("release_notes")
+
+    // Debug: Print the extracted values for debugging purposes
+    fmt.Printf("Username: %s, Release Title: %s, Release Date: %s, Estimated Count: %s, Release Notes: %s\n",
+        username, releaseTitle, releaseDate, estimatedCount, releaseNotes)
+
+    // Ensure all required fields are present
+    if username == "" || releaseTitle == "" || releaseDate == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Required fields are missing",
+        })
+    }
+
+    // Handle file upload (media)
+    mediaHeader, err := c.FormFile("media")
+    if err != nil {
+        fmt.Printf("Error retrieving media: %v\n", err)
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Media file is required",
+        })
+    }
+
+    // Read file content
+    file, err := mediaHeader.Open()
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Unable to read media file",
+        })
+    }
+    defer file.Close()
+
+    mediaBytes := make([]byte, mediaHeader.Size)
+    _, err = file.Read(mediaBytes)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error reading media file",
+        })
+    }
+
+    // Call the AddReleaseRequest function to insert the release request into the database
+    err = accountDB.AddReleaseRequest(username, releaseTitle, releaseDate, estimatedCount, releaseNotes, mediaBytes)
+    if err != nil {
+        log.Printf("Error adding release request: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error adding release request",
+        })
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "Release request submitted successfully!",
     })
 }
