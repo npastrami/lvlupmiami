@@ -179,7 +179,11 @@ const Profile: React.FC = () => {
 
   const handleReleaseForm = () => {
     navigate('/release_request', { state: { username } });
-  };  
+  };
+  
+  const handleReviewReleaseRequests = () => {
+    navigate('/review_release_requests');
+  };
 
   return (
     <YStack alignItems="center" justifyContent="center" height="90vh">
@@ -199,7 +203,22 @@ const Profile: React.FC = () => {
           Profile
         </Text>
 
-        {/* Add Release Form button for creators */}
+        {/* Add Review Release Request button for creators */}
+        {accountType === 'admin' && (
+          <Button
+            size="$2"
+            backgroundColor="#BA68C8"
+            hoverStyle={{ backgroundColor: '#AB47BC' }}
+            borderRadius="$4"
+            marginBottom="$4"
+            onPress={handleReviewReleaseRequests}
+          >
+            Review Release Requests
+          </Button>
+        )}
+
+
+        {/* Add Release Request button for creators */}
         {accountType === 'creator' && (
           <Button
             size="$2"

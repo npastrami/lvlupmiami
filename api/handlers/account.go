@@ -7,6 +7,7 @@ import (
     "shellhacks/api/utils"
     "time"
     "fmt"
+    "shellhacks/api/database/nftdatabase"
     "golang.org/x/crypto/bcrypt"
     "github.com/dgrijalva/jwt-go"
 )
@@ -14,7 +15,7 @@ import (
 var secretKey = []byte("mysecretkey") // Ensure you import and set your secretKey here
 
 // RegisterAccountRoutes registers all account-related public routes
-func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDatabase) {
+func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDatabase, nftDB *nftdatabase.NFTDatabase) {
     app.Get("/api/verify_email", func(c *fiber.Ctx) error {
         return verifyEmailHandler(c, accountDB)
     })
@@ -39,6 +40,13 @@ func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDat
     app.Post("/api/release_request", func(c *fiber.Ctx) error {
         return releaseFormHandler(c, accountDB)
     })
+    app.Get("/api/review_release_requests", func(c *fiber.Ctx) error {
+        return reviewReleaseRequestsHandler(c, accountDB)
+    })
+    app.Post("/api/approve_release", func(c *fiber.Ctx) error {
+        return approveReleaseHandler(c, accountDB, nftDB)
+    })
+
 }
 
 // Handler function for login
@@ -422,5 +430,68 @@ func releaseFormHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase
 
     return c.Status(fiber.StatusCreated).JSON(fiber.Map{
         "message": "Release request submitted successfully!",
+    })
+}
+
+// Handler function for reviewing release requests
+func reviewReleaseRequestsHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    releaseRequests, err := accountDB.GetReleaseRequests()
+    if err != nil {
+        log.Printf("Error retrieving release requests: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error retrieving release requests",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(releaseRequests)
+}
+
+// Handler function for approving release requests
+func approveReleaseHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase, nftDB *nftdatabase.NFTDatabase) error {
+    type ApproveRequest struct {
+        ReleaseID int `json:"release_id"`
+    }
+
+    var approveReq ApproveRequest
+    if err := c.BodyParser(&approveReq); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    releaseRequest, err := accountDB.GetReleaseRequestByID(approveReq.ReleaseID)
+    if err != nil {
+        log.Printf("Error retrieving release request: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error retrieving release request",
+        })
+    }
+
+    if releaseRequest == nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "Release request not found",
+        })
+    }
+
+    // Dereference releaseRequest pointer to pass it to QueueMint function
+    err = nftDB.QueueMint(*releaseRequest)
+    if err != nil {
+        log.Printf("Error queuing mint: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error queuing mint",
+        })
+    }
+
+    // Remove the approved release request from the release_requests table
+    err = accountDB.DeleteReleaseRequest(approveReq.ReleaseID)
+    if err != nil {
+        log.Printf("Error deleting release request: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error deleting release request",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "Release request approved successfully!",
     })
 }

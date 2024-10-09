@@ -4,7 +4,7 @@ import (
     "context"
     "fmt"
     "time"
-
+    "shellhacks/api/database/accountdatabase"
     "github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -57,7 +57,7 @@ func InitializeNFTDatabase(pool *pgxpool.Pool) error {
     createQueuedMintsTable := `
         CREATE TABLE IF NOT EXISTS queued_mints (
             queue_id SERIAL PRIMARY KEY,
-            nft_id TEXT NOT NULL,
+            release_name TEXT NOT NULL,
             owner_address TEXT NOT NULL,
             queued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -130,4 +130,22 @@ func (db *NFTDatabase) GetAllListings() ([]map[string]interface{}, error) {
     }
 
     return listings, nil
+}
+
+func (db *NFTDatabase) QueueMint(request accountdatabase.ReleaseRequest) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `
+        INSERT INTO queued_mints (release_name, owner_address)
+        VALUES ($1, $2)
+    `
+    // Assuming nft_id is generated from the release title
+    releaseName := request.ReleaseTitle
+    _, err := db.Pool.Exec(ctx, query, releaseName, request.Username)
+    if err != nil {
+        return fmt.Errorf("failed to queue mint: %w", err)
+    }
+
+    return nil
 }

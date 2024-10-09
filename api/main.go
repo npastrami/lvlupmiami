@@ -47,7 +47,7 @@ func main() {
     }))
 
     // Register routes
-    handlers.RegisterAccountRoutes(app, accountDB)
+    handlers.RegisterAccountRoutes(app, accountDB, nftDB)
     handlers.RegisterMarketplaceRoutes(app.Group("/api/marketplace"), nftDB, accountDB)
 
     // Start server
