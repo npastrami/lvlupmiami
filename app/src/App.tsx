@@ -14,7 +14,7 @@ import Logout from './pages/Profile/logout';
 import Navbar from './pages/Navbar';  // Assuming Navbar is in a components folder
 import CreatorApp from './pages/Profile/creatorapp';
 import ReleaseForm from './pages/Profile/releaseform';
-
+import ReviewReleaseRequests from './pages/Profile/reviewreleaserequest';
 import { Stack } from 'tamagui';
 
 // Import Particle Background
@@ -48,6 +48,7 @@ const App: React.FC = () => {
               <Route path="/pages/Profile/profile" element={<Profile />} />
               <Route path="/profile/creator_application" element={<CreatorApp />} />
               <Route path="/release_request" element={<ReleaseForm />} />
+              <Route path="/review_release_requests" element={<ReviewReleaseRequests />} />
               <Route path="/pages/Marketplace/marketHome" element={<MarketHome />} />
               <Route path="/pages/Staking/levelup" element={<LevelUp />} />
               <Route path="/pages/Profile/logout" element={<Logout />} />

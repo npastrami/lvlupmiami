@@ -13,6 +13,28 @@ type AccountDatabase struct {
     Pool *pgxpool.Pool
 }
 
+// ReleaseRequest represents a release request
+type ReleaseRequest struct {
+    ReleaseID      int
+    Username       string
+    ReleaseTitle   string
+    ReleaseDate    time.Time
+    EstimatedCount string
+    ReleaseNotes   string
+    CreatedAt      time.Time
+}
+
+// User represents a user in the system
+type User struct {
+    ID            int
+    Username      string
+    Email         string
+    Password      string
+    EmailVerified bool
+    AccountType   string
+    WalletID      *string
+}
+
 // NewAccountDatabase initializes a new AccountDatabase instance
 func NewAccountDatabase(dbURL string) (*AccountDatabase, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -274,14 +296,57 @@ func (db *AccountDatabase) AddReleaseRequest(username, releaseTitle, releaseDate
     return nil
 }
 
+func (db *AccountDatabase) GetReleaseRequests() ([]ReleaseRequest, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
 
-// User represents a user in the system
-type User struct {
-    ID            int
-    Username      string
-    Email         string
-    Password      string
-    EmailVerified bool
-    AccountType   string
-    WalletID      *string
+    rows, err := db.Pool.Query(ctx, `
+        SELECT release_id, username, release_title, release_date, estimated_count, release_notes, created_at
+        FROM release_requests
+    `)
+    if err != nil {
+        return nil, fmt.Errorf("failed to retrieve release requests: %w", err)
+    }
+    defer rows.Close()
+
+    var releaseRequests []ReleaseRequest
+    for rows.Next() {
+        var request ReleaseRequest
+        if err := rows.Scan(&request.ReleaseID, &request.Username, &request.ReleaseTitle, &request.ReleaseDate, &request.EstimatedCount, &request.ReleaseNotes, &request.CreatedAt); err != nil {
+            return nil, fmt.Errorf("failed to scan release request: %w", err)
+        }
+        releaseRequests = append(releaseRequests, request)
+    }
+
+    return releaseRequests, nil
+}
+
+func (db *AccountDatabase) DeleteReleaseRequest(releaseID int) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `DELETE FROM release_requests WHERE release_id = $1`
+    _, err := db.Pool.Exec(ctx, query, releaseID)
+    if err != nil {
+        return fmt.Errorf("failed to delete release request: %w", err)
+    }
+
+    return nil
+}
+
+func (db *AccountDatabase) GetReleaseRequestByID(releaseID int) (*ReleaseRequest, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var request ReleaseRequest
+    err := db.Pool.QueryRow(ctx, `
+        SELECT release_id, username, release_title, release_date, estimated_count, release_notes, created_at
+        FROM release_requests
+        WHERE release_id = $1
+    `, releaseID).Scan(&request.ReleaseID, &request.Username, &request.ReleaseTitle, &request.ReleaseDate, &request.EstimatedCount, &request.ReleaseNotes, &request.CreatedAt)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get release request by id: %w", err)
+    }
+
+    return &request, nil
 }
