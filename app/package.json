@@ -12,9 +12,11 @@
   "dependencies": {
     "@tamagui/button": "^1.112.22",
     "@tsparticles/engine": "^3.5.0",
+    "@types/react-datepicker": "^7.0.0",
     "axios": "^1.7.7",
     "ethers": "^6.13.3",
     "react": "^18.3.1",
+    "react-datepicker": "^7.4.0",
     "react-dom": "^18.3.1",
     "react-native": "^0.75.4",
     "react-native-web": "^0.19.12",

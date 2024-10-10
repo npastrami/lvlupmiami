@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Button, YStack, XStack, Input, Text } from 'tamagui';
+"use client";
+
+import React, { useState } from "react";
+import { Button, YStack, XStack, Input, Text } from "tamagui";
 
 interface CreateNewListingProps {
   onAddListing: () => void;
@@ -8,41 +10,39 @@ interface CreateNewListingProps {
 const CreateNewListing: React.FC<CreateNewListingProps> = ({ onAddListing }) => {
   const [showCreateListingModal, setShowCreateListingModal] = useState(false);
   const [newListing, setNewListing] = useState({
-    nftId: '',
-    sellerAddress: '',
-    price: '',
-    image_url: '',
+    nftId: "",
+    sellerAddress: "",
+    price: "",
   });
 
   const handleCreateListing = async () => {
     try {
-      const response = await fetch('/api/marketplace', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3000/api/marketplace/listings", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           nftId: newListing.nftId,
           sellerAddress: newListing.sellerAddress,
           price: parseFloat(newListing.price),
-          image_url: newListing.image_url,
         }),
       });
 
       if (response.ok) {
-        alert('Listing created successfully!');
+        alert("Listing created successfully!");
         setShowCreateListingModal(false);
-        setNewListing({ nftId: '', sellerAddress: '', price: '', image_url: '' }); // Reset form
+        setNewListing({ nftId: "", sellerAddress: "", price: "" }); // Reset form
 
         // Call onAddListing to refresh the marketplace listings in the parent component
         if (onAddListing) {
           onAddListing();
         }
       } else {
-        alert('Failed to create listing.');
+        alert("Failed to create listing.");
       }
     } catch (error) {
-      console.error('Error creating listing:', error);
+      console.error("Error creating listing:", error);
     }
   };
 
@@ -102,13 +102,6 @@ const CreateNewListing: React.FC<CreateNewListingProps> = ({ onAddListing }) => 
               placeholder="Price (ETH)"
               value={newListing.price}
               onChangeText={(text) => setNewListing({ ...newListing, price: text })}
-              borderColor="#6A1B9A"
-              marginBottom="$4"
-            />
-            <Input
-              placeholder="File Path"
-              value={newListing.image_url}
-              onChangeText={(text) => setNewListing({ ...newListing, image_url: text })}
               borderColor="#6A1B9A"
               marginBottom="$4"
             />

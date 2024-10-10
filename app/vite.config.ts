@@ -26,6 +26,10 @@ export default defineConfig({
       ],
     },
   },
+  server: {
+    host: 'localhost', // Ensure it binds only to localhost
+    port: 5173
+  },
   resolve: {
     alias: {
       'react-native': 'react-native-web',
