@@ -97,6 +97,17 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
           >
             Login
           </Button>
+          <Text
+            color="#6A1B9A"
+            fontWeight="bold"
+            fontSize="$2"
+            textAlign="center"
+            marginTop="$2"
+            onPress={() => navigate('/pages/Profile/forgotpassword')}
+            style={{ cursor: 'pointer' }}
+          >
+            Forgot Password?
+          </Text>
         </YStack>
       </Card>
     </YStack>
