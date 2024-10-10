@@ -7,6 +7,8 @@ import './assets/fonts/fonts.css';
 import HomePage from './pages/Home/home';
 import Login from './pages/Profile/login';
 import SignUp from './pages/Profile/signUp';
+import ForgotPassword from './pages/Profile/forgotpassword';
+import ResetPassword from './pages/Profile/resetpassword';
 import Profile from './pages/Profile/profile';
 import MarketHome from './pages/Marketplace/marketHome';
 import LevelUp from './pages/Staking/levelup';
@@ -46,6 +48,8 @@ const App: React.FC = () => {
               <Route path="/pages/Profile/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
               <Route path="/pages/Profile/signUp" element={<SignUp />} />
               <Route path="/pages/Profile/profile" element={<Profile />} />
+              <Route path="/pages/Profile/forgotpassword" element={<ForgotPassword />} />
+              <Route path="/pages/Profile/reset_password" element={<ResetPassword />} />
               <Route path="/profile/creator_application" element={<CreatorApp />} />
               <Route path="/release_request" element={<ReleaseForm />} />
               <Route path="/review_release_requests" element={<ReviewReleaseRequests />} />

@@ -1,11 +1,12 @@
 package accountdatabase
 
 import (
-    "context"
-    "fmt"
-    "time"
-    "github.com/jackc/pgx/v4/pgxpool"
-    "golang.org/x/crypto/bcrypt"
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AccountDatabase represents the database for managing accounts
@@ -102,6 +103,15 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
             items_received JSONB,
             notes TEXT,
             status TEXT DEFAULT 'Pending...'
+        );
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token_id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            used BOOLEAN DEFAULT FALSE,
+            expires_at TIMESTAMP NOT NULL
         );
         `,
         
@@ -349,4 +359,124 @@ func (db *AccountDatabase) GetReleaseRequestByID(releaseID int) (*ReleaseRequest
     }
 
     return &request, nil
+}
+
+func (db *AccountDatabase) GetUserByEmail(email string) (*User, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var user User
+    err := db.Pool.QueryRow(ctx, `
+        SELECT account_id, username, email, password, email_verified, account_type, wallet_id
+        FROM accountsettings
+        WHERE email = $1
+    `, email).Scan(
+        &user.ID,
+        &user.Username,
+        &user.Email,
+        &user.Password,
+        &user.EmailVerified,
+        &user.AccountType,
+        &user.WalletID,
+    )
+    if err != nil {
+        if err.Error() == "no rows in result set" {
+            return nil, nil // Email not found
+        }
+        return nil, fmt.Errorf("failed to get user by email: %w", err)
+    }
+
+    return &user, nil
+}
+
+
+func (db *AccountDatabase) UpdatePassword(username, newPassword string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+    if err != nil {
+        return fmt.Errorf("failed to hash new password: %w", err)
+    }
+
+    query := `
+        UPDATE accountsettings
+        SET password = $1
+        WHERE username = $2
+    `
+    _, err = db.Pool.Exec(ctx, query, string(hashedPassword), username)
+    if err != nil {
+        return fmt.Errorf("failed to update password: %w", err)
+    }
+
+    return nil
+}
+
+// CreatePasswordResetToken creates a new password reset token in the database
+func (db *AccountDatabase) CreatePasswordResetToken(username, token string) (int, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    expiresAt := time.Now().UTC().Add(time.Hour * 1)
+
+    var tokenID int
+    err := db.Pool.QueryRow(ctx, `
+        INSERT INTO password_reset_tokens (username, token, expires_at)
+        VALUES ($1, $2, $3)
+        RETURNING token_id
+    `, username, token, expiresAt).Scan(&tokenID)
+    if err != nil {
+        return 0, fmt.Errorf("failed to insert password reset token: %w", err)
+    }
+
+    return tokenID, nil
+}
+
+
+// IsPasswordResetTokenValid checks if a token is valid, unused, and not expired
+func (db *AccountDatabase) IsPasswordResetTokenValid(tokenString, username string) (bool, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var used bool
+    var expiresAt time.Time
+
+    err := db.Pool.QueryRow(ctx, `
+        SELECT used, expires_at
+        FROM password_reset_tokens
+        WHERE username = $1 AND token = $2
+    `, username, tokenString).Scan(&used, &expiresAt)
+    if err != nil {
+        if err.Error() == "no rows in result set" {
+            return false, nil // Token not found
+        }
+        return false, fmt.Errorf("failed to query password reset token: %w", err)
+    }
+
+    if used {
+        return false, nil // Token has already been used
+    }
+
+    expiresAtUTC := expiresAt.UTC()
+    if time.Now().UTC().After(expiresAtUTC) {
+        return false, nil // Token has expired
+    }
+    return true, nil
+}
+
+
+// MarkPasswordResetTokenAsUsed marks a password reset token as used
+func (db *AccountDatabase) MarkPasswordResetTokenAsUsed(tokenString string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    _, err := db.Pool.Exec(ctx, `
+        UPDATE password_reset_tokens
+        SET used = TRUE
+        WHERE token = $1
+    `, tokenString)
+    if err != nil {
+        return fmt.Errorf("failed to mark password reset token as used: %w", err)
+    }
+
+    return nil
 }

@@ -46,7 +46,12 @@ func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDat
     app.Post("/api/approve_release", func(c *fiber.Ctx) error {
         return approveReleaseHandler(c, accountDB, nftDB)
     })
-
+    app.Post("/api/forgot_password", func(c *fiber.Ctx) error {
+        return forgotPasswordHandler(c, accountDB)
+    })
+    app.Post("/api/reset_password", func(c *fiber.Ctx) error {
+        return resetPasswordHandler(c, accountDB)
+    })
 }
 
 // Handler function for login
@@ -493,5 +498,166 @@ func approveReleaseHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatab
 
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "message": "Release request approved successfully!",
+    })
+}
+
+func generatePasswordResetToken(username string, accountDB *accountdatabase.AccountDatabase) (string, error) {
+    // Create JWT claims
+    claims := jwt.MapClaims{}
+    claims["username"] = username
+    claims["type"] = "password_reset"
+    claims["exp"] = time.Now().UTC().Add(time.Hour * 1).Unix() // Token valid for 1 hour
+
+    // Create the token
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    tokenString, err := token.SignedString(secretKey)
+    if err != nil {
+        return "", fmt.Errorf("failed to sign token: %w", err)
+    }
+
+    // Insert the token into the database
+    _, err = accountDB.CreatePasswordResetToken(username, tokenString)
+    if err != nil {
+        return "", fmt.Errorf("failed to create password reset token in database: %w", err)
+    }
+
+    return tokenString, nil
+}
+
+func forgotPasswordHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    type ForgotPasswordRequest struct {
+        Email string `json:"email"`
+    }
+
+    var req ForgotPasswordRequest
+    if err := c.BodyParser(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    // Check if the email exists in the database
+    user, err := accountDB.GetUserByEmail(req.Email)
+    if err != nil || user == nil {
+        // For security reasons, do not reveal if the email exists or not
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "message": "If an account with that email exists, a reset link has been sent.",
+        })
+    }
+
+    // Generate a password reset token
+    token, err := generatePasswordResetToken(user.Username, accountDB)
+    if err != nil {
+        log.Printf("Error generating password reset token: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error generating password reset token",
+        })
+    }
+
+    resetLink := "http://localhost:5173/pages/profile/reset_password?token=" + token
+    log.Printf("Password reset link: %s", resetLink) // For debugging
+
+    // Send the password reset email
+    emailSubject := "Password Reset Request"
+    emailBody := fmt.Sprintf(`
+Hello %s,
+
+We received a request to reset your password. Please click the link below to set a new password:
+
+%s
+
+If you did not request a password reset, please ignore this email.
+
+Thank you,
+Your Company Name
+`, user.Username, resetLink)
+
+    if err := utils.SendEmail(req.Email, emailSubject, emailBody); err != nil {
+        log.Printf("Error sending password reset email: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error sending password reset email",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "If an account with that email exists, a reset link has been sent.",
+    })
+}
+
+// Handler function for resetting password
+func resetPasswordHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    type ResetPasswordRequest struct {
+        Token       string `json:"token"`
+        NewPassword string `json:"new_password"`
+    }
+
+    var req ResetPasswordRequest
+    if err := c.BodyParser(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    // Parse and validate the token
+    token, err := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fiber.ErrUnauthorized
+        }
+        return secretKey, nil
+    })
+
+    if err != nil || !token.Valid {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid or expired token",
+        })
+    }
+
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok || claims["type"] != "password_reset" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    username, ok := claims["username"].(string)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    // Verify the token in the database
+    valid, err := accountDB.IsPasswordResetTokenValid(req.Token, username)
+    if err != nil {
+        log.Printf("Error verifying password reset token: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error verifying password reset token",
+        })
+    }
+
+    if !valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid or expired token",
+        })
+    }
+
+    // Update the user's password
+    if err := accountDB.UpdatePassword(username, req.NewPassword); err != nil {
+        log.Printf("Error updating password: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error updating password",
+        })
+    }
+
+    // Mark the token as used
+    if err := accountDB.MarkPasswordResetTokenAsUsed(req.Token); err != nil {
+        log.Printf("Error marking token as used: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error processing request",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "Password has been reset successfully!",
     })
 }
