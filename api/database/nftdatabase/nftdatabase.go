@@ -39,7 +39,7 @@ func InitializeNFTDatabase(pool *pgxpool.Pool) error {
     createMarketplaceListingsTable := `
         CREATE TABLE IF NOT EXISTS marketplace_listings (
             listing_id SERIAL PRIMARY KEY,
-            nft_id TEXT NOT NULL,
+            release_name TEXT NOT NULL,
             seller_address TEXT NOT NULL,
             price REAL NOT NULL,
             image_url TEXT,
@@ -49,7 +49,7 @@ func InitializeNFTDatabase(pool *pgxpool.Pool) error {
     createFreshMintsTable := `
         CREATE TABLE IF NOT EXISTS fresh_mints (
             mint_id SERIAL PRIMARY KEY,
-            nft_id TEXT NOT NULL,
+            release_name TEXT NOT NULL,
             owner_address TEXT NOT NULL,
             minted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -121,7 +121,7 @@ func (db *NFTDatabase) GetAllListings() ([]map[string]interface{}, error) {
 
         listings = append(listings, map[string]interface{}{
             "listing_id":     listingID,
-            "nft_id":         nftID,
+            "release_name":   nftID,
             "seller_address": sellerAddress,
             "price":          price,
             "image_url":      imageURL,

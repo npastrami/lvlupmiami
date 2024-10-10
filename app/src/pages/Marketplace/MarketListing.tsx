@@ -1,31 +1,77 @@
 import React from 'react';
+import { YStack, Text, Button, Image } from 'tamagui';
 
 type MarketListingProps = {
-  nftId: string;
+  release_name: string;
   sellerAddress: string;
   price: number;
   url: string;
 };
 
-const MarketListing: React.FC<MarketListingProps> = ({ nftId, sellerAddress, price, url }) => {
+const MarketListing: React.FC<MarketListingProps> = ({ release_name, sellerAddress, price, url }) => {
   return (
-    <div className="border border-secondary rounded-lg p-4 bg-base-100 w-60 h-[380px] shadow-md flex flex-col justify-between">
-      <div className="w-full h-40 relative mb-4">
-        {/* Standard HTML img tag to replace the Next.js Image component */}
-        <img
-          src={url}
-          alt={`NFT ${nftId}`}
-          className="rounded-md w-full h-full object-cover"
-          style={{ height: '100%', width: '100%' }}
-        />
-      </div>
-      <div>
-        <h3 className="text-lg font-bold mt-2">NFT ID: {nftId}</h3>
-        <p className="text-sm text-gray-500 truncate">Seller: {sellerAddress}</p>
-        <p className="text-sm">Price: {price} ETH</p>
-      </div>
-      <button className="btn btn-primary btn-sm mt-4 self-center">Buy Now</button>
-    </div>
+    <YStack
+      padding="$4"
+      borderRadius="$6"
+      elevation="$3"
+      transition="transform 0.2s ease"
+      hoverStyle={{
+        transform: "scale(1.05)",
+      }}
+      space="$4"
+      style={{
+        width: 240,
+        height: 360,
+        borderWidth: 1,
+        borderColor: "#ccc", // Add a border to simulate 'bordered'
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Add a subtle shadow
+      }}
+    >
+      {/* Image Section */}
+      <YStack height={150} borderRadius="$4" overflow="hidden">
+        {url ? (
+          <Image
+            src={url}
+            alt={`NFT ${release_name}`}
+            width="100%"
+            height="100%"
+            style={{ objectFit: "cover" }}
+          />
+        ) : (
+          <Text fontSize="$4" color="#6A1B9A" textAlign="center" padding="$3">
+            No Image Available
+          </Text>
+        )}
+      </YStack>
+
+      {/* Information Section */}
+      <YStack space="$2">
+        <Text fontSize="$5" fontWeight="bold" color="#6A1B9A">
+          NFT ID: {release_name}
+        </Text>
+        <Text fontSize="$4" color="#9E9E9E">
+          Seller: {sellerAddress}
+        </Text>
+        <Text fontSize="$4" color="#6A1B9A">
+          Price: {price} ETH
+        </Text>
+      </YStack>
+
+      {/* Buy Button */}
+      <Button
+        theme="purple"
+        backgroundColor="#6A1B9A"
+        borderRadius="$4"
+        paddingHorizontal="$6"
+        paddingVertical="$3"
+        alignSelf="center"
+        hoverStyle={{
+          backgroundColor: "#8E24AA",
+        }}
+      >
+        Buy Now
+      </Button>
+    </YStack>
   );
 };
 
