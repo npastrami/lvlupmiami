@@ -15,8 +15,8 @@ var accountDB *accountdatabase.AccountDatabase
 
 func main() {
     // Separate Database connection URLs for NFT and Account databases
-    nftDBURL := "postgres://postgres:0464111@localhost:5432/nftdatabase"
-    accountDBURL := "postgres://postgres:0464111@localhost:5432/accountdatabase"
+    nftDBURL := "postgres://postgres:newpassword@localhost:5432/nftdatabase"
+    accountDBURL := "postgres://postgres:newpassword@localhost:5432/accountdatabase"
 
     // Initialize the NFT Database
     var err error
