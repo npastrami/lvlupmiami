@@ -53,8 +53,9 @@ func main() {
         AllowHeaders: "Origin, Content-Type, Accept, Authorization",
     }))
 
-    handlers.RegisterAccountRoutes(app, accountDB, nftDB, uploader)
-    handlers.RegisterMarketplaceRoutes(app.Group("/api/marketplace"), nftDB, accountDB)
+    // Register all routes through routes.go
+    handlers.RegisterRoutes(app, accountDB, nftDB, uploader)
 
     log.Fatal(app.Listen(":3000"))
 }
+
