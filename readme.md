@@ -1,6 +1,6 @@
 # The <img src="./app/public/LevelUpIconnobg.png" alt="Logo" width="25"/>Level-Up Project
 
-[![Discord](https://img.shields.io/discord/f6kwhSEp?label=&logo=discord&color=5865F2&labelColor=gray)](https://discord.gg/f6kwhSEp)  [![Email Me](https://img.shields.io/badge/Email-blue?logo=gmail&logoColor=white)](mailto:npastrana15@outlook.com)
+[![Discord](https://img.shields.io/badge/-6-5865F2?logo=discord&logoColor=white&labelColor=gray)](https://discord.gg/f6kwhSEp)  [![Email Me](https://img.shields.io/badge/Email-blue?logo=gmail&logoColor=white)](mailto:npastrana15@outlook.com)
 
 ## Project Abstract
 Level-Up is a open-source web3 project, conceived from winning 🏆 the EthMiami Challenge at FIU ShellHacks 2024, focused on building a next-gen NFT Marketplace. Level-Up NFTs can be "Leveled-Up" through physical or digital engagement with your favorite creators, events, brands, and companies. The higher level your NFT is, the better your chances will be for perks and rewards across physical and digital realities. Read our Project Plan here:  [Level-Up Plan](https://docs.google.com/document/d/1lNKjT-8U095Y8X2VzrIardgacW-AdabSoBK0094m62Q/edit?usp=drive_link)
