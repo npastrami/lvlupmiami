@@ -1,4 +1,4 @@
-# The <img src="./app/public/LevelUpIconnobg.png" alt="Logo" width="25"/><span style="font-family:'PaladinsLaser';">Level-Up </span> Project
+# The <img src="./app/public/LevelUpIconnobg.png" alt="Logo" width="25"/>Level-Up Project
 
 [![Discord](https://img.shields.io/discord/f6kwhSEp?label=&logo=discord&color=5865F2&labelColor=gray)](https://discord.gg/f6kwhSEp)  [![Email Me](https://img.shields.io/badge/Email-blue?logo=gmail&logoColor=white)](mailto:npastrana15@outlook.com)
 
@@ -112,10 +112,3 @@ At the moment, we are using Azure Storage for file/image storage but we are expl
 - **Vite Config:**
   - `vite.config.ts`
 
-
-<style>
-@font-face {
-    font-family: 'PaladinsLaser';
-    src: url('./app/public/fonts/PaladinsLaser.woff2') format('truetype');
-}
-</style>
