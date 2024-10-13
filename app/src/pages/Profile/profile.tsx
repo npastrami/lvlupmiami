@@ -185,6 +185,15 @@ const Profile: React.FC = () => {
     navigate('/review_release_requests');
   };
 
+  const handleKYCVerification = () => {
+    navigate('/kyc');
+  };
+
+  const handleReviewKYC = () => {
+    navigate('/review_kyc');
+  };
+
+
   return (
     <YStack alignItems="center" justifyContent="center" height="90vh">
       <Card
@@ -231,6 +240,33 @@ const Profile: React.FC = () => {
             Release Form
           </Button>
         )}
+
+        {accountType === 'admin' && (
+          <Button
+            size="$2"
+            backgroundColor="#BA68C8"
+            hoverStyle={{ backgroundColor: '#AB47BC' }}
+            borderRadius="$4"
+            marginBottom="$4"
+            onPress={handleReviewKYC}
+          >
+            Review KYC Requests
+          </Button>
+        )}
+
+        {accountType === 'user' && (
+          <Button
+            size="$2"
+            backgroundColor="#BA68C8"
+            hoverStyle={{ backgroundColor: '#AB47BC' }}
+            borderRadius="$4"
+            marginBottom="$4"
+            onPress={handleKYCVerification}
+          >
+            KYC Verification
+          </Button>
+        )}
+
 
         {accountType === 'user' && (
           <Button

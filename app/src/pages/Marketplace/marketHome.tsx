@@ -90,7 +90,7 @@ const MarketHome: React.FC = () => {
         <CreateNewListing onAddListing={fetchMarketListings} />
 
         {/* Filters */}
-        <Text fontSize="$5" fontWeight="bold" marginBottom="$4" style={{ color: "#6A1B9A" }}>
+        <Text fontSize="$5" fontWeight="bold" marginBottom="$4" marginTop="$4" style={{ color: "#6A1B9A" }}>
           Filter Listings
         </Text>
 

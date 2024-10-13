@@ -2,23 +2,31 @@ package main
 
 import (
     "log"
+    "os"
+
     "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/fiber/v2/middleware/logger"
     "github.com/gofiber/fiber/v2/middleware/cors"
-    "shellhacks/api/database/nftdatabase"
+    "github.com/gofiber/fiber/v2/middleware/logger"
+    "github.com/joho/godotenv" 
     "shellhacks/api/database/accountdatabase"
+    "shellhacks/api/database/nftdatabase"
     "shellhacks/api/handlers"
+    "shellhacks/api/utils"
 )
 
 var nftDB *nftdatabase.NFTDatabase
 var accountDB *accountdatabase.AccountDatabase
+var uploader *utils.Uploader
 
 func main() {
-    // Separate Database connection URLs for NFT and Account databases
-    nftDBURL := "postgres://postgres:newpassword@localhost:5432/nftdatabase"
-    accountDBURL := "postgres://postgres:newpassword@localhost:5432/accountdatabase"
+    if err := godotenv.Load(); err != nil {
+        log.Fatalf("Error loading .env file: %v\n", err)
+    }
 
-    // Initialize the NFT Database
+    nftDBURL := os.Getenv("NFT_DB_URL")
+    accountDBURL := os.Getenv("ACCOUNT_DB_URL")
+    azureBlobConnectionString := os.Getenv("AZURE_BLOB_CONNECTION_STRING")
+
     var err error
     nftDB, err = nftdatabase.NewNFTDatabase(nftDBURL)
     if err != nil {
@@ -26,30 +34,27 @@ func main() {
     }
     defer nftDB.Pool.Close()
 
-    // Initialize Account Database
     accountDB, err = accountdatabase.NewAccountDatabase(accountDBURL)
     if err != nil {
         log.Fatalf("Unable to connect to account database: %v\n", err)
     }
     defer accountDB.Pool.Close()
 
-    // Initialize Fiber app
+    uploader, err = utils.NewUploader(azureBlobConnectionString)
+    if err != nil {
+        log.Fatalf("Unable to initialize Azure Blob Uploader: %v\n", err)
+    }
+
     app := fiber.New()
     app.Use(logger.New())
-
-    //deeznutz
-
-    // Use CORS middleware to allow cross-origin requests
     app.Use(cors.New(cors.Config{
-        AllowOrigins: "*", // Change this to your front-end origin, e.g. "http://127.0.0.1:5173"
+        AllowOrigins: "*", 
         AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
         AllowHeaders: "Origin, Content-Type, Accept, Authorization",
     }))
 
-    // Register routes
-    handlers.RegisterAccountRoutes(app, accountDB, nftDB)
+    handlers.RegisterAccountRoutes(app, accountDB, nftDB, uploader)
     handlers.RegisterMarketplaceRoutes(app.Group("/api/marketplace"), nftDB, accountDB)
 
-    // Start server
     log.Fatal(app.Listen(":3000"))
 }

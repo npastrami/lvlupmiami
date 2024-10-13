@@ -29,7 +29,7 @@ const TamaguiCarousel: React.FC<TamaguiCarouselProps> = ({ imageRange, showPurch
   // Generate image paths based on the provided range
   const images = [];
   for (let i = imageRange.start; i <= imageRange.end; i++) {
-    images.push(`/src/assets/nft${i}.jpg`);
+    images.push(`/src/assets/nftsample${i}.jpg`);
   }
 
   return (
