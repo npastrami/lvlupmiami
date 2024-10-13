@@ -7,19 +7,6 @@ import (
     "shellhacks/api/database/accountdatabase"
 )
 
-func RegisterMarketplaceRoutes(router fiber.Router, nftDB *nftdatabase.NFTDatabase, accountDB *accountdatabase.AccountDatabase) {
-    // Passing the handler functions with nftDB and accountDB as arguments
-    router.Get("/listings", func(c *fiber.Ctx) error {
-        return getListingsHandler(c, nftDB)
-    })
-    router.Post("/listings", func(c *fiber.Ctx) error {
-        return createListingHandler(c, nftDB)
-    })
-    router.Post("/transaction", func(c *fiber.Ctx) error {
-        return addTransactionHandler(c, accountDB)
-    })
-}
-
 // Handler function to fetch listings
 func getListingsHandler(c *fiber.Ctx, nftDB *nftdatabase.NFTDatabase) error {
     listings, err := nftDB.GetAllListings()
