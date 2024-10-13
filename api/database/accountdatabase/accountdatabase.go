@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-
 	"github.com/jackc/pgx/v4/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -12,6 +11,19 @@ import (
 // AccountDatabase represents the database for managing accounts
 type AccountDatabase struct {
     Pool *pgxpool.Pool
+}
+
+// KYCRequest represents a KYC request structure
+type KYCRequest struct {
+    KycID        int       `json:"kyc_id"`
+    Username     string    `json:"username"`
+    FullLegalName string   `json:"full_legal_name"`
+    Address      string    `json:"address"`
+    Country      string    `json:"country"`
+    Email        string    `json:"email"`
+    PhoneNumber  string    `json:"phone_number"`
+    DateOfBirth  string    `json:"date_of_birth"`
+    CreatedAt    time.Time `json:"created_at"`
 }
 
 // ReleaseRequest represents a release request
@@ -67,8 +79,32 @@ func InitializeAccountDatabase(pool *pgxpool.Pool) error {
             password TEXT NOT NULL,
             email_verified BOOLEAN DEFAULT FALSE,
             account_type TEXT DEFAULT 'user',
-            wallet_id TEXT
+            wallet_id TEXT,
+            kyc_verified BOOLEAN DEFAULT FALSE,
+            full_legal_name TEXT,
+            address TEXT,
+            country TEXT,
+            phone_number TEXT,
+            date_of_birth TEXT,
+            document BYTEA,
+            face_image BYTEA
         );
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS kyc_pending (
+            kyc_id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            full_legal_name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            country TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone_number TEXT NOT NULL,
+            date_of_birth TEXT NOT NULL,
+            document BYTEA NOT NULL,
+            face_image BYTEA NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
         `,
         `
         CREATE TABLE IF NOT EXISTS creator_applications (
@@ -479,4 +515,106 @@ func (db *AccountDatabase) MarkPasswordResetTokenAsUsed(tokenString string) erro
     }
 
     return nil
+}
+
+// ApproveKYCRequest approves a KYC request and updates the accountsettings table
+func (db *AccountDatabase) ApproveKYCRequest(kycID int) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var username, fullLegalName, address, country, email, phoneNumber, dateOfBirth string
+    var document, faceImage []byte
+
+    // Retrieve KYC request details from kyc_pending
+    err := db.Pool.QueryRow(ctx, `
+        SELECT username, full_legal_name, address, country, email, phone_number, date_of_birth, document, face_image
+        FROM kyc_pending
+        WHERE kyc_id = $1
+    `, kycID).Scan(&username, &fullLegalName, &address, &country, &email, &phoneNumber, &dateOfBirth, &document, &faceImage)
+
+    if err != nil {
+        return fmt.Errorf("failed to retrieve KYC request: %w", err)
+    }
+
+    // Update accountsettings with KYC details and set kyc_verified to true
+    _, err = db.Pool.Exec(ctx, `
+        UPDATE accountsettings
+        SET full_legal_name = $1,
+            address = $2,
+            country = $3,
+            phone_number = $4,
+            date_of_birth = $5,
+            document = $6,
+            face_image = $7,
+            kyc_verified = TRUE
+        WHERE username = $8 AND email = $9
+    `, fullLegalName, address, country, phoneNumber, dateOfBirth, document, faceImage, username, email)
+
+    if err != nil {
+        return fmt.Errorf("failed to update account settings with KYC details: %w", err)
+    }
+
+    // Delete the approved KYC request from kyc_pending
+    _, err = db.Pool.Exec(ctx, `DELETE FROM kyc_pending WHERE kyc_id = $1`, kycID)
+    if err != nil {
+        return fmt.Errorf("failed to delete KYC request: %w", err)
+    }
+
+    return nil
+}
+
+// DeclineKYCRequest declines a KYC request and deletes it from kyc_pending
+func (db *AccountDatabase) DeclineKYCRequest(kycID int) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    // Delete the KYC request
+    _, err := db.Pool.Exec(ctx, `DELETE FROM kyc_pending WHERE kyc_id = $1`, kycID)
+    if err != nil {
+        return fmt.Errorf("failed to delete KYC request: %w", err)
+    }
+
+    return nil
+}
+
+func (db *AccountDatabase) AddKYCRequest(username, fullLegalName, address, country, email, phoneNumber, dateOfBirth string, document, faceImage []byte) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    query := `
+        INSERT INTO kyc_pending (username, full_legal_name, address, country, email, phone_number, date_of_birth, document, face_image, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+    `
+    _, err := db.Pool.Exec(ctx, query, username, fullLegalName, address, country, email, phoneNumber, dateOfBirth, document, faceImage)
+    if err != nil {
+        return fmt.Errorf("failed to add KYC request: %w", err)
+    }
+
+    return nil
+}
+
+// GetAllPendingKYCRequests fetches all pending KYC requests
+func (db *AccountDatabase) GetAllPendingKYCRequests() ([]KYCRequest, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    rows, err := db.Pool.Query(ctx, `
+        SELECT kyc_id, username, full_legal_name, address, country, email, phone_number, date_of_birth, created_at
+        FROM kyc_pending
+    `)
+    if err != nil {
+        return nil, fmt.Errorf("failed to retrieve KYC requests: %w", err)
+    }
+    defer rows.Close()
+
+    var kycRequests []KYCRequest
+    for rows.Next() {
+        var request KYCRequest
+        if err := rows.Scan(&request.KycID, &request.Username, &request.FullLegalName, &request.Address, &request.Country, &request.Email, &request.PhoneNumber, &request.DateOfBirth, &request.CreatedAt); err != nil {
+            return nil, fmt.Errorf("failed to scan KYC request: %w", err)
+        }
+        kycRequests = append(kycRequests, request)
+    }
+
+    return kycRequests, nil
 }

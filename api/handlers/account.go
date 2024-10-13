@@ -10,12 +10,13 @@ import (
     "shellhacks/api/database/nftdatabase"
     "golang.org/x/crypto/bcrypt"
     "github.com/dgrijalva/jwt-go"
+
 )
 
 var secretKey = []byte("mysecretkey") // Ensure you import and set your secretKey here
 
 // RegisterAccountRoutes registers all account-related public routes
-func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDatabase, nftDB *nftdatabase.NFTDatabase) {
+func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDatabase, nftDB *nftdatabase.NFTDatabase, uploader *utils.Uploader) {
     app.Get("/api/verify_email", func(c *fiber.Ctx) error {
         return verifyEmailHandler(c, accountDB)
     })
@@ -38,7 +39,7 @@ func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDat
         return createAccountHandler(c, accountDB)
     })
     app.Post("/api/release_request", func(c *fiber.Ctx) error {
-        return releaseFormHandler(c, accountDB)
+        return releaseFormHandler(c, accountDB, uploader)
     })
     app.Get("/api/review_release_requests", func(c *fiber.Ctx) error {
         return reviewReleaseRequestsHandler(c, accountDB)
@@ -52,6 +53,19 @@ func RegisterAccountRoutes(app *fiber.App, accountDB *accountdatabase.AccountDat
     app.Post("/api/reset_password", func(c *fiber.Ctx) error {
         return resetPasswordHandler(c, accountDB)
     })
+    app.Get("/api/review_kyc", func(c *fiber.Ctx) error {
+        return reviewKYCRequestsHandler(c, accountDB)
+    })
+    app.Post("/api/approve_kyc", func(c *fiber.Ctx) error {
+        return approveKYCRequestHandler(c, accountDB)
+    })
+    app.Post("/api/decline_kyc", func(c *fiber.Ctx) error {
+        return declineKYCRequestHandler(c, accountDB)
+    })
+    app.Post("/api/account/kyc_verification", func(c *fiber.Ctx) error {
+        return kycVerificationHandler(c, accountDB, uploader)
+    })
+    
 }
 
 // Handler function for login
@@ -379,55 +393,46 @@ func updateWalletHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabas
 }
 
 // Handler function for processing the release form submission
-func releaseFormHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
-    // Extract form fields from query parameters
+func releaseFormHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase, uploader *utils.Uploader) error {
     username := c.Query("username")
     releaseTitle := c.Query("release_title")
     releaseDate := c.Query("release_date")
     estimatedCount := c.Query("estimated_count")
     releaseNotes := c.Query("release_notes")
 
-    // Debug: Print the extracted values for debugging purposes
-    fmt.Printf("Username: %s, Release Title: %s, Release Date: %s, Estimated Count: %s, Release Notes: %s\n",
-        username, releaseTitle, releaseDate, estimatedCount, releaseNotes)
-
-    // Ensure all required fields are present
     if username == "" || releaseTitle == "" || releaseDate == "" {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Required fields are missing",
         })
     }
 
-    // Handle file upload (media)
     mediaHeader, err := c.FormFile("media")
     if err != nil {
-        fmt.Printf("Error retrieving media: %v\n", err)
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Media file is required",
         })
     }
 
-    // Read file content
-    file, err := mediaHeader.Open()
+    mediaFileStream, err := mediaHeader.Open()
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Unable to read media file",
+            "error": "Failed to read media file",
         })
     }
-    defer file.Close()
+    defer mediaFileStream.Close()
 
-    mediaBytes := make([]byte, mediaHeader.Size)
-    _, err = file.Read(mediaBytes)
+    // Upload media file to the "release-request" container
+    containerName := "release-request"
+    blobURL, err := uploader.Upload(c.Context(), containerName, username, mediaFileStream, mediaHeader.Filename)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Error reading media file",
+            "error": "Failed to upload media to Azure Blob Storage",
         })
     }
 
-    // Call the AddReleaseRequest function to insert the release request into the database
-    err = accountDB.AddReleaseRequest(username, releaseTitle, releaseDate, estimatedCount, releaseNotes, mediaBytes)
+    // Add the release request to the database
+    err = accountDB.AddReleaseRequest(username, releaseTitle, releaseDate, estimatedCount, releaseNotes, []byte(blobURL))
     if err != nil {
-        log.Printf("Error adding release request: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Error adding release request",
         })
@@ -659,5 +664,186 @@ func resetPasswordHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDataba
 
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "message": "Password has been reset successfully!",
+    })
+}
+
+// Handler function to retrieve all KYC requests for review
+func reviewKYCRequestsHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    // Fetch all KYC requests from the database
+    kycRequests, err := accountDB.GetAllPendingKYCRequests()
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to fetch KYC requests",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(kycRequests)
+}
+
+// Handler function for approving KYC requests
+func approveKYCRequestHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    type ApproveRequest struct {
+        KycID int `json:"kyc_id"`
+    }
+
+    var approveReq ApproveRequest
+    if err := c.BodyParser(&approveReq); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    if err := accountDB.ApproveKYCRequest(approveReq.KycID); err != nil {
+        log.Printf("Error approving KYC request: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error approving KYC request",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "KYC request approved successfully!",
+    })
+}
+
+// Handler function for declining KYC requests
+func declineKYCRequestHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase) error {
+    type DeclineRequest struct {
+        KycID int    `json:"kyc_id"`
+        Email string `json:"email"`
+    }
+
+    var declineReq DeclineRequest
+    if err := c.BodyParser(&declineReq); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    // Decline the KYC request by deleting it from kyc_pending
+    if err := accountDB.DeclineKYCRequest(declineReq.KycID); err != nil {
+        log.Printf("Error declining KYC request: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error declining KYC request",
+        })
+    }
+
+    // Send email notification about declined KYC
+    emailSubject := "KYC Verification Declined"
+    emailBody := "We regret to inform you that your KYC verification has been declined. Please try submitting your documents again."
+    if err := utils.SendEmail(declineReq.Email, emailSubject, emailBody); err != nil {
+        log.Printf("Error sending email notification: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to send email notification",
+        })
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "KYC request declined successfully!",
+    })
+}
+
+func kycVerificationHandler(c *fiber.Ctx, accountDB *accountdatabase.AccountDatabase, uploader *utils.Uploader) error {
+    authHeader := c.Get("Authorization")
+    if authHeader == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Missing authorization header",
+        })
+    }
+
+    tokenStr := authHeader[len("Bearer "):]
+    token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fiber.ErrUnauthorized
+        }
+        return secretKey, nil
+    })
+
+    if err != nil || !token.Valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token",
+        })
+    }
+
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    username := claims["username"].(string)
+
+    // Parse form data
+    fullLegalName := c.FormValue("full_legal_name")
+    address := c.FormValue("address")
+    country := c.FormValue("country")
+    email := c.FormValue("email")
+    phoneNumber := c.FormValue("phone_number")
+    dateOfBirth := c.FormValue("date_of_birth")
+
+    // Get the document (government ID) and face image
+    documentFile, err := c.FormFile("document")
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Document file is required",
+        })
+    }
+
+    faceImageFile, err := c.FormFile("face_image")
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Face image file is required",
+        })
+    }
+
+    // Open file streams for both files
+    documentStream, err := documentFile.Open()
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to read document file",
+        })
+    }
+    defer documentStream.Close()
+
+    faceImageStream, err := faceImageFile.Open()
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to read face image file",
+        })
+    }
+    defer faceImageStream.Close()
+
+    // Upload both images to the "kyc-verification-requests" container
+    containerName := "kyc-verification-requests"
+    
+    // Upload document
+    log.Printf("Uploading file: %s to container: %s", documentFile.Filename, containerName)
+    documentBlobURL, err := uploader.Upload(c.Context(), containerName, username, documentStream, documentFile.Filename)
+    if err != nil {
+        log.Printf("Error uploading document to Azure Blob Storage: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": fmt.Sprintf("Failed to upload document to Azure Blob Storage: %v", err),
+        })
+    }
+
+    // Upload face image
+    log.Printf("Uploading file: %s to container: %s", faceImageFile.Filename, containerName)
+    faceImageBlobURL, err := uploader.Upload(c.Context(), containerName, username, faceImageStream, faceImageFile.Filename)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to upload face image to Azure Blob Storage",
+        })
+    }
+
+    // Store the KYC request details in the database
+    err = accountDB.AddKYCRequest(username, fullLegalName, address, country, email, phoneNumber, dateOfBirth, []byte(documentBlobURL), []byte(faceImageBlobURL))
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error adding KYC request",
+        })
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "KYC verification request submitted successfully!",
     })
 }

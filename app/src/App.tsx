@@ -17,6 +17,8 @@ import Navbar from './pages/Navbar';  // Assuming Navbar is in a components fold
 import CreatorApp from './pages/Profile/creatorapp';
 import ReleaseForm from './pages/Profile/releaseform';
 import ReviewReleaseRequests from './pages/Profile/reviewreleaserequest';
+import KYC from './pages/Profile/kyc';
+import KYCReview from './pages/Profile/kycreview';
 import { Stack } from 'tamagui';
 
 // Import Particle Background
@@ -56,6 +58,8 @@ const App: React.FC = () => {
               <Route path="/pages/Marketplace/marketHome" element={<MarketHome />} />
               <Route path="/pages/Staking/levelup" element={<LevelUp />} />
               <Route path="/pages/Profile/logout" element={<Logout />} />
+              <Route path="/kyc" element={<KYC/>}/>
+              <Route path="/review_kyc" element={<KYCReview/>}/>
             </Routes>
           </Stack>
         </div>

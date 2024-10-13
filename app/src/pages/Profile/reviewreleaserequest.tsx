@@ -22,7 +22,7 @@ const ReviewReleaseRequest: React.FC = () => {
           },
         });
 
-        setReleaseRequests(response.data);
+        setReleaseRequests(response.data || []);
         console.log(response.data);
       } catch (err) {
         console.error('Fetch Error:', err);
