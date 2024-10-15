@@ -8,10 +8,8 @@ Level-Up is a open-source web3 project, conceived from winning 🏆 the EthMiami
 ![Picture of Level-Up Marketplace page](./app/src/assets/v1market.png)
 
 Interested in getting involved? Join the Discord!
-https://discord.com/invite/f6kwhSEp
 
-Interested in contributing? Send us an email! 
-npastrana15@outlook.com
+Interested in contributing? Send us an email!
 
 ## Installation / Setup
 
